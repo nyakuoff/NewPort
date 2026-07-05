@@ -626,10 +626,8 @@ marquee { display: block; }
 .tray-ico { animation: trayPulse 3s ease-in-out infinite; }
 
 @keyframes windowPop {
-  0% { transform: scale(1) rotate(0deg); }
-  40% { transform: scale(1.015) rotate(-.4deg); }
-  70% { transform: scale(.998) rotate(.3deg); }
-  100% { transform: scale(1) rotate(0deg); }
+  0% { filter: brightness(1.25); }
+  100% { filter: brightness(1); }
 }
 .window.just-focused { animation: windowPop .28s ease-out; }
 

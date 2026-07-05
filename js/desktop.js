@@ -42,29 +42,27 @@
   /* -------------------------------------------------------------
      WINDOW REGISTRY
      ------------------------------------------------------------- */
-  var windows = {}; // id -> {el, taskBtn, min, prevRect}
+  var windows = {}; // id -> {el, taskBtn, minimized}
 
   function idFor(key) { return "win-" + key; }
 
   function registerWindow(el) {
     var key = el.id.replace(/^win-/, "");
-    windows[key] = { el: el, taskBtn: null, minimized: false, maximized: false, prevRect: null };
+    windows[key] = { el: el, taskBtn: null, minimized: false };
     el.addEventListener("mousedown", function () { focusWindow(key); });
     var titleBar = el.querySelector(".title-bar");
     if (titleBar) {
-      // wire control buttons
+      // wire control buttons — windows are fixed size, so the max button
+      // is wired to nothing on purpose, it's just there for the look
       el.querySelectorAll(".title-bar-controls button").forEach(function (b) {
         b.addEventListener("click", function (e) {
           e.stopPropagation();
           var act = b.getAttribute("data-act");
           if (act === "close") closeWindow(key);
           else if (act === "min") minimizeWindow(key);
-          else if (act === "max") toggleMax(key);
         });
       });
       makeDraggable(el, titleBar, key);
-      // double-click titlebar = maximize
-      titleBar.addEventListener("dblclick", function () { toggleMax(key); });
     } else {
       // chromeless window (e.g. the ipod) — drag from its own graphic, no min/max/close
       makeDraggable(el, el.firstElementChild, key);
@@ -99,24 +97,6 @@
     w.el.style.display = "none";
     w.minimized = true;
     if (w.taskBtn) w.taskBtn.classList.remove("active");
-  }
-
-  function toggleMax(key) {
-    var w = windows[key], el = w.el;
-    if (!w.maximized) {
-      w.prevRect = { left: el.style.left, top: el.style.top, right: el.style.right,
-                     width: el.style.width, height: el.style.height };
-      el.style.left = "0px"; el.style.top = "0px"; el.style.right = "auto";
-      el.style.width = DESIGN_W + "px"; el.style.height = (DESIGN_H - 34) + "px";
-      w.maximized = true;
-    } else {
-      var r = w.prevRect || {};
-      el.style.left = r.left || "120px"; el.style.top = r.top || "60px";
-      el.style.right = r.right || "auto";
-      el.style.width = r.width || "500px"; el.style.height = r.height || "auto";
-      w.maximized = false;
-    }
-    focusWindow(key);
   }
 
   function focusWindow(key) {
@@ -169,7 +149,6 @@
     var sx, sy, ox, oy, dragging = false;
     handle.addEventListener("mousedown", function (e) {
       if (e.target.closest(".title-bar-controls, .click-wheel-area, .next-button, .back-button, .menu-button")) return;
-      if (windows[key].maximized) return;
       dragging = true;
       el.classList.add("dragging");
       // normalize to left/top positioning, in logical canvas coordinates
