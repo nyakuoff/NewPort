@@ -1,0 +1,503 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=1920">
+  <title>nyakuverse</title>
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="icon" href="assets/nyaku_pixelartpfp.gif">
+</head>
+
+<body>
+
+  <div id="scale-wrap">
+
+  <div id="crt-flash"></div>
+
+  <div id="desktop">
+
+    <!-- =========================== DESKTOP ICONS =========================== -->
+    <div id="icon-layer">
+      <div class="desk-icon" data-open="paint"><img src="img/icons/paint.png" alt="">
+        <div class="label">welcome.exe</div>
+      </div>
+      <div class="desk-icon" data-open="works"><img src="img/icons/folder.png" alt="">
+        <div class="label">my_works</div>
+      </div>
+      <div class="desk-icon" data-open="player"><img src="img/icons/media2.png" alt="">
+        <div class="label">MediaPlayer</div>
+      </div>
+      <div class="desk-icon" data-open="contact"><img src="img/icons/outlook.png" alt="">
+        <div class="label">contact.eml</div>
+      </div>
+      <div class="desk-icon" data-open="recycle"><img src="img/icons/recycle_empty.png" alt="">
+        <div class="label">Recycle Bin</div>
+      </div>
+      <div class="desk-icon" id="troll-icon"><img src="img/icons/keys.png" alt="">
+        <div class="label">do_not_open</div>
+      </div>
+    </div>
+
+    <!-- ================================================================= -->
+    <!-- MAIN WINDOW:  nyaku - Paint  (the chaos lives here)               -->
+    <!-- ================================================================= -->
+    <div class="window paintwin" id="win-paint" data-title="nyaku - Paint" data-icon="img/icons/paint.png"
+      style="width:940px; height:640px; left:150px; top:26px;">
+      <div class="title-bar paint-title">
+        <div class="title-bar-text"><img src="img/icons/paint.png" alt=""> nyaku - Paint</div>
+        <div class="title-bar-controls">
+          <button class="tb-min" data-act="min"></button>
+          <button class="tb-max" data-act="max"></button>
+          <button class="tb-close" data-act="close"></button>
+        </div>
+      </div>
+
+      <!-- menu bar -->
+      <div class="menubar">
+        <span><u>F</u>ile</span><span><u>E</u>dit</span><span><u>V</u>iew</span>
+        <span data-scroll="sec-about">About</span>
+        <span data-open="works">Works</span>
+        <span data-scroll="sec-art">Art</span>
+        <span data-scroll="sec-links">Links</span>
+        <span data-scroll="sec-stand">Shrines</span>
+        <span><u>H</u>elp</span>
+      </div>
+
+      <div class="paint-shell">
+        <!-- tool box -->
+        <div class="toolbox">
+          <div class="tool-grid" id="tool-grid"></div>
+          <div class="tool-opts"><span class="brush"></span></div>
+        </div>
+
+        <!-- canvas -->
+        <div class="canvas-wrap">
+          <div class="canvas" id="paint-canvas">
+
+            <!-- ============ HERO (overlapping, dense) ============ -->
+            <div class="chaos hero">
+              <img src="assets/nyaku_avatar_fullbody.png" alt="nyaku" class="deco"
+                style="left:-6px; top:52px; width:212px; z-index:3;">
+              <div class="navigate-scribble"
+                style="position:absolute; left:16px; top:28px; z-index:8; font-size:23px; transform:rotate(-9deg);">↷
+                NAViGATE!</div>
+
+              <div style="position:absolute; left:206px; top:20px; right:120px; text-align:center; z-index:5;">
+                <div class="wordart" style="font-size:60px;">NYAKU</div>
+                <div class="pixel glow-hot" style="font-size:17px; letter-spacing:1px;">✦ this is supposed to be a portfolio ✦</div>
+              </div>
+
+              <!-- welcome box, sitting LOWER, overlapped by gifs -->
+              <div class="welcome-box" style="position:absolute; left:206px; top:134px; width:462px; z-index:4;">
+                <p style="margin-top:0;"><b>welcome 2 my website!!!</b> i am SO happy you're here ♡</p>
+                <p class="small">this site is made for a <b>desktop</b> browser and is
+                  <b class="glow-hot">NOT made for mobile</b>. if you're on your phone its ggs, go find a computer.
+                </p>
+                <p class="small" style="margin-bottom:0;">
+                  my name is <b class="rainbow-txt">nyaku</b> — i design sound, script &amp;
+                  make VFX and<br>
+                  forget stuff all the time.
+                </p>
+              </div>
+
+              <div class="fieldset"
+                style="position:absolute; left:240px; top:326px; width:428px; z-index:5; background:#fff; box-shadow:var(--border-sunken);">
+                <span class="legend" style="background:#fff;">fast facts!</span>
+                <ul class="pixel-list" style="columns:2; margin:0;">
+                  <li>18 · he/him</li>
+                  <li>from Morocco</li>
+                  <li>sound designer</li>
+                  <li>scripter · vfx artist</li>
+                </ul>
+              </div>
+
+              <!-- right side: BIG spiderman overlapping everything + blinkies -->
+              <img src="assets/spiderman.gif" alt="" class="deco front sway"
+                style="right:-160px; top:-40px; width:400px; z-index:8;">
+              <div class="tiny center" style="position:absolute; right:20px; top:206px; width:120px; z-index:9;">me,
+                allegedly</div>
+              <img src="assets/community/blinkies/blinkies_08.gif" alt="welcome to my homepage" class="deco tilt-r"
+                style="right:-4px; top:250px; z-index:7; transform:scale(1.2) rotate(4deg);">
+              <img src="assets/community/blinkies/blinkies_06.gif" alt="you copy you die" class="deco"
+                style="right:6px; top:284px; z-index:7; transform:scale(1.1);">
+
+              <!-- OVERLAPPING chaos gifs bleeding over the boxes + divider -->
+              <img src="assets/caprisun.gif" alt="" class="deco front spin"
+                style="left:130px; top:330px; width:165px; z-index:9;">
+              <img src="assets/beardbear_guit1.gif" alt="bear playing guitar" class="deco front sway"
+                style="right:-20px; top:305px; width:186px; z-index:8;">
+              <img src="assets/community/cute/cute_19.gif" alt="" class="deco front"
+                style="left:604px; top:120px; width:80px; z-index:9;">
+              <img src="assets/5-2.png" alt="" class="deco front"
+                style="left:150px; top:290px; width:100px; z-index:8;">
+              <img src="assets/open24hrs.gif" alt="" class="deco"
+                style="left:392px; top:112px; height:24px; z-index:6;">
+            </div>
+
+            <img class="gif-divider huge-div" src="assets/community/dividers/dividers_05.gif" alt="divider"
+              style="z-index:9;">
+
+            <!-- ===== badge row (dense, shuffled) ===== -->
+            <div class="chaos">
+              <div class="button-wall dense" style="margin-top:3px; padding-right:240px;">
+                <img src="assets/Button_Powered_by_Autism.gif" alt="autism">
+                <img src="assets/community/buttons/buttons_11.gif" alt="IE is evil">
+                <img src="assets/Button_TBH.gif" alt="tbh">
+                <img src="assets/community/buttons/buttons_16.gif" alt="coolpage">
+                <img src="assets\Button_I_Like_Computer.png" alt="i liek computer">
+                <img src="assets\Button_Yuri_Now.gif" alt="yuri now">
+                <img src="assets/community/buttons/buttons_09.gif" alt="">
+                <img src="assets/community/buttons/buttons_19.gif" alt="">
+                <img src="assets/community/buttons/buttons_28.gif" alt="">
+                <img src="assets/community/buttons/buttons_01.gif" alt="">
+                <img src="assets/standwith_palestine.png" alt="stand with palestine">
+              </div>
+              <img src="assets/cats_campfire.gif" alt="us at 2am" class="deco front"
+                style="right:-8px; top:-8px; width:316px; z-index:9;">
+            </div>
+
+            <img class="gif-divider huge-div" src="assets/community/dividers/dividers_02.gif" alt="divider">
+
+            <!-- ===== ABOUT ME ===== -->
+            <a id="sec-about"></a>
+            <div class="section-h">☆ about me ☆</div>
+            <div class="threecol" style="grid-template-columns:1fr 1fr;">
+              <div class="fieldset">
+                <span class="legend">who is nyaku?</span>
+                <p class="small" style="margin-top:0;">18, he/him, born in Morocco. I design sound,
+                  write scripts, and build VFX for whatever weird project I've convinced myself is a good idea
+                  this week. Most of it ends up here eventually, assuming I don't lose the file first.</p>
+                <p class="small" style="margin-bottom:0;">I like things loud, glitchy, and a little too much —
+                  this website included. Chaotic, and im allegedly a functioning adult.</p>
+                <ul class="pixel-list" style="margin-top:6px;">
+                  <li>he/him</li>
+                  <li>in reheated pizza i believe</li>
+                  <li>in 3am debug sessions i believe</li>
+                  <li>in Mr. Robot i believe</li>
+                </ul>
+              </div>
+              <div>
+                <div class="fieldset fav">
+                  <span class="legend">favorites:</span>
+                  <ul class="pixel-list fav" style="columns:2;margin:0;">
+                    <li>color: orange</li>
+                    <li>animal: harp seal</li>
+                    <li>season: winter</li>
+                    <li>drink: water</li>
+                    <li>fruit: idk</li>
+                    <li>sound: farts</li>
+                    <li>game: firewatch</li>
+                    <li>word: copacetic</li>
+                  </ul>
+                </div>
+                <div class="fieldset currently">
+                  <span class="legend">currently:</span>
+                  <ul class="pixel-list currently" style="margin:0;">
+                    <li>listening: check the media player</li>
+                    <li>watching: Dexter (most likely outdated)</li>
+                    <li>coding: probably something useless</li>
+                    <li>feeling: <span class="glow-hot">whimsical</li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+            <div class="fieldset">
+              <span class="legend">fun facts:</span>
+              <ul class="pixel-list" style="columns:2;margin:0;">
+                <li>i forget about stuff ALL THE TIME</li>
+                <li>i love kfc so fking much</li>
+                <li>part time perfectionist</li>
+                <li>my first fandom was warrior cats (lorem)</li>
+              </ul>
+            </div>
+
+            <div class="marquee-bar">
+              <marquee scrollamount="6">★ nyakuverse ★ mr.robot propaganda ★ nerd land ★ tiktok addict ★ j'imagine que
+                le poulet c'est pas très mauvais ★</marquee>
+            </div>
+
+            <!-- ===== WHERE I STAND / shrines ===== -->
+            <a id="sec-stand"></a>
+            <div class="section-h">☆ where i stand ☆</div>
+            <div class="safe-space">
+              <div class="safe-head">☆ this is a safe space ☆</div>
+              <div class="safe-grid">
+                <div class="safe-me">
+                  <img src="assets/lgbt-heart-x2-bi-outline.png" alt="bi pride heart" id="lgbt-heart-btn"
+                    class="heart-btn">
+                  <div class="tiny pixel">this is me!<br><b class="glow-hot">bi &amp; proud</b></div>
+                </div>
+                <div class="safe-body">
+                  <p style="margin:0 0 8px;">everyone is welcome here <b>always</b>. this corner of the web loves
+                    you.<br>
+                    some things just aren't up for debate ♡</p>
+                  <div class="support-badges">
+                    <img src="assets/lgbt-heart-x2-progress-outline.png" alt="progress pride" title="progress pride">
+                    <img src="assets/community/pride_modern/rainbow.png" alt="rainbow flag">
+                    <img src="assets/community/pride_modern/bi-rights.gif" alt="bi rights">
+                    <img src="assets/community/pride_modern/transrights.gif" alt="trans rights">
+                    <img src="assets/community/pride_modern/pride.png" alt="pride stamp">
+                    <img src="assets/community/pride_modern/getqueer.gif" alt="get queer now">
+                    <img src="assets/community/pride_modern/queercode.png" alt="you're telling me a queer coded this">
+                  </div>
+                </div>
+              </div>
+              <div class="support-list">
+                <ul>
+                  <li>trans rights are human rights</li>
+                  <li>black lives matter</li>
+                  <li>free palestine</li>
+                  <li>disabled rights are human rights</li>
+                </ul>
+                <ul>
+                  <li>sex work is work</li>
+                  <li>protect trans kids</li>
+                  <li>no human is illegal</li>
+                  <li>no one is free until we're all free</li>
+                </ul>
+              </div>
+            </div>
+
+            <img class="gif-divider" src="assets/community/dividers/dividers_06.gif" alt="divider">
+
+            <!-- ===== featured media (full width) ===== -->
+            <a id="sec-art"></a><a id="sec-links"></a>
+            <div class="chaos" style="margin-top:16px;">
+              <div class="section-h" style="font-size:22px;margin:0 0 8px;">✦ featured media i like ✦</div>
+              <div class="media-strip">
+                <div class="media-card">
+                  <div class="vintage-thumb"><img src="assets/medias/mrrobot.jpg" alt=""></div>
+                </div>
+                <div class="media-card">
+                  <div class="vintage-thumb"><img src="assets/medias/tlou.jpg" alt="" style="transform:scale(1.25);"></div>
+                </div>
+                <div class="media-card">
+                  <div class="vintage-thumb"><img src="assets/medias/twilight.jpg" alt=""></div>
+                </div>
+                <div class="media-card">
+                  <div class="vintage-thumb"><img src="assets/2306_2.png" alt=""></div>
+                </div>
+              </div>
+              <img src="assets/community/cute/cute_24.gif" alt="" class="deco front"
+                style="right:12px; top:-10px; width:84px; z-index:9;">
+            </div>
+
+            <!-- blinkie collection (fills the width) -->
+            <div class="section-h" style="font-size:18px; margin:14px 0 4px;">✦ my blinkie collection ✦</div>
+            <div class="stamp-strip" style="justify-content:center; gap:8px 10px;">
+              <img src="assets/community/blinkies/blinkies_21.gif" alt="sign our guestbook">
+              <img src="assets/community/blinkies/blinkies_13.gif" alt="click here">
+              <img src="assets/community/blinkies/blinkies_02.gif" alt="backgrounds by angelpie">
+              <img src="assets/community/blinkies/blinkies_14.gif" alt="about me">
+              <img src="assets/community/blinkies/blinkies_18.gif" alt="">
+              <img src="assets/community/blinkies/blinkies_03.gif" alt="email me">
+              <img src="assets/community/blinkies/blinkies_10.gif" alt="">
+              <img src="assets/community/blinkies/blinkies_07.gif" alt="">
+              <img src="assets/community/blinkies/blinkies_05.gif" alt="">
+              <img src="assets/community/cute/cute_00.gif" alt="" style="height:40px;">
+              <img src="assets/community/cute/cute_04.gif" alt="" style="height:32px;">
+              <img src="assets/community/cute/cute_16.gif" alt="" style="height:38px;">
+              <img src="assets/community/cute/cute_01.gif" alt="" style="height:34px;">
+              <img src="assets/community/cute/cute_08.gif" alt="" style="height:36px;">
+            </div>
+
+            <img class="gif-divider huge-div" src="assets/community/dividers/dividers_07.gif" alt="divider">
+
+            <!-- ===== pixel cliques (dense + overlapping) ===== -->
+            <a id="sec-fun"></a>
+            <div class="chaos">
+              <div class="section-h" style="font-size:20px;">pixel cliques!</div>
+              <div class="button-wall dense" style="justify-content:center;">
+                <img src="assets/community/buttons/buttons_00.gif" alt=""><img
+                  src="assets/community/buttons/buttons_02.gif" alt="">
+                <img src="assets/community/buttons/buttons_03.gif" alt=""><img
+                  src="assets/community/buttons/buttons_06.gif" alt="">
+                <img src="assets/community/buttons/buttons_07.gif" alt=""><img
+                  src="assets/community/buttons/buttons_08.gif" alt="">
+                <img src="assets/community/buttons/buttons_25.gif" alt=""><img
+                  src="assets/community/buttons/buttons_13.gif" alt="">
+                <img src="assets/community/buttons/buttons_15.gif" alt=""><img
+                  src="assets/community/buttons/buttons_17.gif" alt="">
+                <img src="assets/community/buttons/buttons_18.gif" alt=""><img
+                  src="assets/community/buttons/buttons_22.gif" alt="">
+                <img src="assets/community/buttons/buttons_23.gif" alt=""><img
+                  src="assets/community/buttons/buttons_29.gif" alt="">
+              </div>
+            </div>
+
+            <div style="height:30px;"></div>
+
+          </div><!-- /canvas -->
+        </div><!-- /canvas-wrap -->
+      </div><!-- /paint-shell -->
+
+      <!-- color palette -->
+      <div class="palette">
+        <div class="pal-current"></div>
+        <div class="swatches" id="swatches"></div>
+      </div>
+    </div>
+
+    <!-- ================================================================= -->
+    <!-- SECONDARY WINDOWS (cleaner)                                        -->
+    <!-- ================================================================= -->
+
+    <!-- WORKS -->
+    <div class="window" id="win-works" data-title="my_works" data-icon="img/icons/folder.png"
+      style="width:560px; left:250px; top:120px; display:none;">
+      <div class="title-bar">
+        <div class="title-bar-text"><img src="img/icons/folder.png" alt=""> C:\nyaku\my_works</div>
+        <div class="title-bar-controls">
+          <button class="tb-min" data-act="min"></button><button class="tb-max" data-act="max"></button><button
+            class="tb-close" data-act="close"></button>
+        </div>
+      </div>
+      <div class="window-body" style="max-height:70vh;">
+        <p class="center"><span class="wordart" style="font-size:26px;">MY WORKS</span></p>
+        <div class="works-grid">
+          <div class="work-card">
+            <div class="thumb" style="background-image:url('assets/works/gpo.png');"></div>
+            <h4>» Grand Piece Online</h4>
+            <span class="tag">Sound Design</span>
+          </div>
+          <div class="work-card">
+            <div class="thumb" style="background-image:url('assets/works/abf.jpg');"></div>
+            <h4>» Abiotic Factor</h4>
+            <span class="tag">Sound Design</span>
+          </div>
+          <div class="work-card">
+            <div class="thumb" style="background-image:url('assets/works/gpa.png');"></div>
+            <h4>» Golden Piece Adventure</h4>
+            <span class="tag">Front-End Scripting</span>
+          </div>
+          <div class="work-card">
+            <div class="thumb" style="background-image:url('assets/works/rellseas.png');"></div>
+            <h4>» RELL Seas</h4>
+            <span class="tag">Sound Design</span>
+          </div>
+        </div>
+        <p class="tiny center" style="margin-top:8px;">under construction</p>
+      </div>
+    </div>
+
+    <!-- MEDIA PLAYER -->
+    <div class="window chromeless" id="win-player" data-title="MediaPlayer" data-icon="img/icons/media2.png"
+      style="width:305px; right:430px; top:360px; left:auto;">
+      <div class="ipod-container">
+        <div class="ipod-hint">scroll wheel to adjust volume</div>
+        <img src="assets/ipod.png" alt="iPod" class="ipod-image" loading="lazy">
+        <div class="screen">
+          <div class="screen-header">
+            <div class="screen-header-left"><span class="play-icon" id="play-icon">▶</span></div>
+            <span class="screen-header-title">Now Playing</span>
+            <div class="battery"><div class="battery-fill"></div></div>
+          </div>
+          <div class="now-playing">
+            <div class="now-playing-content">
+              <img id="mp-cover-img" class="album-art" src="assets/nyancat.gif" alt="">
+              <div class="track-info">
+                <span id="mp-track" class="track-title">loading...</span>
+                <span id="mp-artist" class="track-artist"></span>
+                <span class="track-album">nyaku's playlist</span>
+              </div>
+            </div>
+            <div class="progress-container">
+              <div class="progress-bar" id="mp-progress"><div class="progress-fill" id="mp-progress-fill"></div></div>
+              <div class="time-row">
+                <span id="mp-cur" class="ipod-time">0:00</span>
+                <span id="mp-dur" class="ipod-time">-0:00</span>
+              </div>
+            </div>
+          </div>
+          <div class="ipod-vol-hud" id="mp-vol-hud"></div>
+        </div>
+        <div class="click-wheel-area" id="mp-play" title="play/pause (scroll wheel = volume)"></div>
+        <div class="next-button" id="mp-next" title="skip forward"></div>
+        <div class="back-button" id="mp-prev" title="skip back"></div>
+        <div class="menu-button" id="mp-stop" title="stop"></div>
+      </div>
+      <audio id="mp-audio" preload="metadata"></audio>
+    </div>
+
+    <!-- CONTACT -->
+    <div class="window" id="win-contact" data-title="contact.eml" data-icon="img/icons/outlook.png"
+      style="width:420px; left:420px; top:160px; display:none;">
+      <div class="title-bar">
+        <div class="title-bar-text"><img src="img/icons/outlook.png" alt=""> contact.eml — Outlook Express</div>
+        <div class="title-bar-controls">
+          <button class="tb-min" data-act="min"></button><button class="tb-max" data-act="max"></button><button
+            class="tb-close" data-act="close"></button>
+        </div>
+      </div>
+      <div class="window-body">
+        <div class="sunkbox" style="font-family:monospace;font-size:13px;">
+          <div><b>To:</b> nyaku</div>
+          <div><b>From:</b> you</div>
+          <div><b>Subject:</b> i saw your website and...</div>
+        </div>
+        <div class="fieldset" style="margin-top:12px;"><span class="legend">reach me at</span>
+          <p style="margin:4px 0;"><b><a href="mailto:nyakusfx@gmail.com">nyakusfx@gmail.com</a></b></p>
+          <p style="margin:4px 0;"><b><a href="https://discord.gg/ey5e5aWcVW">Discord</a></b></p>
+          <p style="margin:4px 0;">wanna hire me or collab? hit me up!</p>
+        </div>
+        <div class="center"><img src="assets/community/blinkies/blinkies_03.gif" alt="email me"><img
+            src="assets/community/blinkies/blinkies_19.gif" alt="send me"></div>
+      </div>
+    </div>
+
+    <!-- RECYCLE -->
+    <div class="window paper" id="win-recycle" data-title="Recycle Bin" data-icon="img/icons/recycle_empty.png"
+      style="width:340px; left:520px; top:220px; display:none;">
+      <div class="title-bar">
+        <div class="title-bar-text"><img src="img/icons/recycle_empty.png" alt=""> Recycle Bin</div>
+        <div class="title-bar-controls">
+          <button class="tb-min" data-act="min"></button><button class="tb-max" data-act="max"></button><button
+            class="tb-close" data-act="close"></button>
+        </div>
+      </div>
+      <div class="window-body">
+        <p>the things i threw away:</p>
+        <ul class="pixel-list">
+          <li>professionalism.dll</li>
+          <li>sleep_schedule.bak <span class="tiny">(corrupted)</span></li>
+          <li>67 unfinished projects.zip</li>
+        </ul>
+        <p class="tiny">nothing of value was lost.</p>
+      </div>
+    </div>
+
+  </div><!-- /#desktop -->
+
+  <!-- START MENU -->
+  <div id="start-menu">
+    <div class="side">NYAKU<b>95</b></div>
+    <div class="items">
+      <div class="sm-item" data-open="paint"><img src="img/icons/paint.png" alt=""> welcome / about</div>
+      <div class="sm-item" data-open="works"><img src="img/icons/folder.png" alt=""> my works</div>
+      <div class="sm-item" data-open="player"><img src="img/icons/media2.png" alt=""> media player</div>
+      <div class="sm-sep"></div>
+      <div class="sm-item" data-open="contact"><img src="img/icons/outlook.png" alt=""> contact</div>
+      <div class="sm-sep"></div>
+      <div class="sm-item" id="sm-pet"><img src="img/icons/keys.png" alt=""> pet the bear</div>
+      <div class="sm-item" id="sm-shutdown"><img src="img/icons/exe.png" alt=""> Sh<u>u</u>t Down...</div>
+    </div>
+  </div>
+
+  <!-- TASKBAR -->
+  <div id="taskbar">
+    <div id="start-btn"><img class="flag" src="img/icons/winlogo2.png" alt=""> Start</div>
+    <div id="task-divider"></div>
+    <div id="task-buttons"></div>
+    <div id="tray">
+      <img class="tray-ico" src="img/icons/loudspeaker_rays.png" alt="" title="volume">
+      <span id="clock">12:00 AM</span>
+    </div>
+  </div>
+
+  </div><!-- /#scale-wrap -->
+
+  <script src="js/desktop.js"></script>
+</body>
+
+</html>
