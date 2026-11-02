@@ -1,608 +1,840 @@
 /* =====================================================================
-   NYAKU95 — desktop window manager + chaos engine
+   nyaku 7 — window manager, explorer, start menu, wmp, logon.
+   content (works, games, song) lives in js/content.js
    ===================================================================== */
 (function () {
   "use strict";
 
-  var desktop   = document.getElementById("desktop");
-  var taskBtns  = document.getElementById("task-buttons");
-  var startBtn  = document.getElementById("start-btn");
-  var startMenu = document.getElementById("start-menu");
-  var zTop = 100;
-
-  // fixed 1440x900 design canvas — everything inside #scale-wrap is laid
-  // out against these, not the real window size (see CSS for why)
-  var DESIGN_W = 1920, DESIGN_H = 1080;
-
-  /* -------------------------------------------------------------
-     RESOLUTION SCALING
-     ------------------------------------------------------------- */
-  var scaleWrap = document.getElementById("scale-wrap");
-  var currentScale = 1;
-  function applyScale() {
-    if (!scaleWrap) return;
-    // scale purely by width so the UI actually grows with the screen; the
-    // logical canvas height flexes to match whatever that leaves for the
-    // real viewport height, so top/bottom-anchored UI (taskbar, icons)
-    // always lands exactly on the real edges — never cropped, never barred
-    currentScale = window.innerWidth / DESIGN_W;
-    DESIGN_H = window.innerHeight / currentScale;
-    scaleWrap.style.height = DESIGN_H + "px";
-    scaleWrap.style.transform = "translate(-50%, -50%) scale(" + currentScale + ")";
-  }
-  applyScale();
-  window.addEventListener("resize", applyScale);
-
-  // real (post-scale) viewport rect -> logical 1440x900 canvas coordinates
-  function toLogical(rect) {
-    var w = scaleWrap.getBoundingClientRect();
-    return { left: (rect.left - w.left) / currentScale, top: (rect.top - w.top) / currentScale };
-  }
+  var $ = function (s, r) { return (r || document).querySelector(s); };
+  var $$ = function (s, r) { return Array.prototype.slice.call((r || document).querySelectorAll(s)); };
+  var esc = function (s) { return String(s == null ? "" : s).replace(/[&<>"']/g, function (c) { return "&#" + c.charCodeAt(0) + ";"; }); };
+  var clamp = function (v, lo, hi) { return Math.max(lo, Math.min(v, hi)); };
+  var desktop = $("#desktop");
+  var works = window.WORKS || [], games = window.GAMES || [];
+  var coarse = matchMedia("(pointer: coarse)").matches;
+  var reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
+  var FOLDERS = { works: 1, games: 1, recycle: 1, computer: 1 };
 
   /* -------------------------------------------------------------
-     WINDOW REGISTRY
+     CROSS-ORIGIN ISOLATION — some web games (SharedArrayBuffer) only run
+     when the page around them is isolated. github pages can't send the
+     COOP/COEP headers, so sw.js adds them. only in browsers that support
+     credentialless iframes, otherwise isolation would block every game
+     that doesn't opt in.
      ------------------------------------------------------------- */
-  var windows = {}; // id -> {el, taskBtn, minimized}
-
-  function idFor(key) { return "win-" + key; }
-
-  function registerWindow(el) {
-    var key = el.id.replace(/^win-/, "");
-    windows[key] = { el: el, taskBtn: null, minimized: false };
-    el.addEventListener("mousedown", function () { focusWindow(key); });
-    var titleBar = el.querySelector(".title-bar");
-    if (titleBar) {
-      // wire control buttons — windows are fixed size, so the max button
-      // is wired to nothing on purpose, it's just there for the look
-      el.querySelectorAll(".title-bar-controls button").forEach(function (b) {
-        b.addEventListener("click", function (e) {
-          e.stopPropagation();
-          var act = b.getAttribute("data-act");
-          if (act === "close") closeWindow(key);
-          else if (act === "min") minimizeWindow(key);
-        });
-      });
-      makeDraggable(el, titleBar, key);
-    } else {
-      // chromeless window (e.g. the ipod) — drag from its own graphic, no min/max/close
-      makeDraggable(el, el.firstElementChild, key);
-    }
+  var canIsolate = "credentialless" in HTMLIFrameElement.prototype && "serviceWorker" in navigator && window.isSecureContext;
+  if (canIsolate && !window.crossOriginIsolated) {
+    navigator.serviceWorker.register("sw.js").then(function (reg) {
+      var reloaded;
+      try { reloaded = sessionStorage.getItem("coi-reload"); sessionStorage.setItem("coi-reload", "1"); } catch (e) { reloaded = "1"; }
+      if (reloaded) return; // never loop if the headers still don't stick
+      if (navigator.serviceWorker.controller) location.reload();
+      else navigator.serviceWorker.addEventListener("controllerchange", function () { location.reload(); });
+    }).catch(function () {});
   }
 
-  function openWindow(key) {
-    var w = windows[key];
-    if (!w) return;
-    w.el.style.display = "flex";
-    w.minimized = false;
-    // spawn slightly offset if never positioned yet handled by CSS
-    ensureTaskButton(key);
-    focusWindow(key);
-    // little open "pop"
-    w.el.animate(
-      [{ transform: "scale(.94)", opacity: .4 }, { transform: "scale(1)", opacity: 1 }],
-      { duration: 120, easing: "ease-out" }
-    );
-  }
-
-  function closeWindow(key) {
-    var w = windows[key];
-    if (!w) return;
-    w.el.style.display = "none";
-    if (w.taskBtn) { w.taskBtn.remove(); w.taskBtn = null; }
-  }
-
-  function minimizeWindow(key) {
-    var w = windows[key];
-    if (!w) return;
-    w.el.style.display = "none";
-    w.minimized = true;
-    if (w.taskBtn) w.taskBtn.classList.remove("active");
-  }
-
-  function focusWindow(key) {
-    var w = windows[key];
-    if (!w) return;
-    if (w.minimized) { w.el.style.display = "flex"; w.minimized = false; }
-    zTop += 1;
-    w.el.style.zIndex = zTop;
-    w.el.classList.remove("just-focused");
-    void w.el.offsetWidth;
-    w.el.classList.add("just-focused");
-    // active states
-    Object.keys(windows).forEach(function (k) {
-      var ww = windows[k];
-      ww.el.classList.toggle("inactive", k !== key);
-      if (ww.taskBtn) ww.taskBtn.classList.toggle("active", k === key);
-    });
+  // win7 default sound scheme
+  function sfx(name) {
+    var a = new Audio("assets/sfx/" + name + ".mp3");
+    a.volume = 0.6;
+    a.play().catch(function () {});
   }
 
   /* -------------------------------------------------------------
-     TASKBAR BUTTONS
+     SCALING — logical canvas is at least 1536x864 (125% dpi at 1080p)
      ------------------------------------------------------------- */
-  function ensureTaskButton(key) {
-    var w = windows[key];
-    if (w.taskBtn) return;
-    var el = w.el;
-    var title = el.getAttribute("data-title") || key;
-    var iconAttr = el.getAttribute("data-icon") || "🗔";
-    var btn = document.createElement("div");
-    btn.className = "task-btn active";
-    var icoHtml = /\.(png|gif|jpg)/i.test(iconAttr)
-      ? '<img src="' + iconAttr + '" alt="">'
-      : '<span>' + iconAttr + '</span>';
-    btn.innerHTML = icoHtml + '<span class="txt">' + title + '</span>';
-    btn.addEventListener("click", function () {
-      var ww = windows[key];
-      if (ww.minimized || ww.el.style.display === "none") { openWindow(key); }
-      else if (btn.classList.contains("active")) { minimizeWindow(key); }
-      else { focusWindow(key); }
-    });
-    taskBtns.appendChild(btn);
-    w.taskBtn = btn;
+  var wrap = $("#scale-wrap"), scale = 1;
+  function fit() {
+    scale = Math.min(innerWidth / 1536, innerHeight / 864);
+    wrap.style.width = innerWidth / scale + "px";
+    wrap.style.height = innerHeight / scale + "px";
+    wrap.style.transform = "scale(" + scale + ")";
   }
+  fit();
+  addEventListener("resize", fit);
 
-  /* -------------------------------------------------------------
-     DRAGGING
-     ------------------------------------------------------------- */
-  function makeDraggable(el, handle, key) {
-    if (!handle) return;
-    var sx, sy, ox, oy, dragging = false;
-    handle.addEventListener("mousedown", function (e) {
-      if (e.target.closest(".title-bar-controls, .click-wheel-area, .next-button, .back-button, .menu-button")) return;
-      dragging = true;
-      el.classList.add("dragging");
-      // normalize to left/top positioning, in logical canvas coordinates
-      var pos = toLogical(el.getBoundingClientRect());
-      el.style.left = pos.left + "px";
-      el.style.top = pos.top + "px";
-      el.style.right = "auto";
-      sx = e.clientX; sy = e.clientY; ox = pos.left; oy = pos.top;
-      focusWindow(key);
+  // pointer drag with capture, so iframes can't swallow the move events
+  function drag(handle, start, move, end) {
+    handle.addEventListener("pointerdown", function (e) {
+      if (e.button !== 0 || start(e) === false) return;
+      var x0 = e.clientX, y0 = e.clientY;
+      handle.setPointerCapture(e.pointerId);
+      document.body.classList.add("dragging");
+      function mv(ev) { move((ev.clientX - x0) / scale, (ev.clientY - y0) / scale); }
+      function up(ev) {
+        handle.removeEventListener("pointermove", mv);
+        handle.removeEventListener("pointerup", up);
+        handle.removeEventListener("pointercancel", up);
+        document.body.classList.remove("dragging");
+        if (end) end(ev);
+      }
+      handle.addEventListener("pointermove", mv);
+      handle.addEventListener("pointerup", up);
+      handle.addEventListener("pointercancel", up);
       e.preventDefault();
     });
-    document.addEventListener("mousemove", function (e) {
-      if (!dragging) return;
-      var nx = ox + (e.clientX - sx) / currentScale;
-      var ny = oy + (e.clientY - sy) / currentScale;
-      ny = Math.max(0, Math.min(ny, DESIGN_H - 60));
-      nx = Math.max(-el.offsetWidth + 80, Math.min(nx, DESIGN_W - 60));
-      el.style.left = nx + "px";
-      el.style.top = ny + "px";
-    });
-    document.addEventListener("mouseup", function () {
-      if (dragging) { dragging = false; el.classList.remove("dragging"); }
-    });
   }
 
   /* -------------------------------------------------------------
-     INIT WINDOWS
+     WINDOWS
      ------------------------------------------------------------- */
-  document.querySelectorAll(".window").forEach(function (el) {
-    if (!/^win-/.test(el.id)) return;
-    registerWindow(el);
-    // give already-visible windows a taskbar button
-    if (getComputedStyle(el).display !== "none") ensureTaskButton(el.id.replace(/^win-/, ""));
-  });
-  focusWindow("paint");
+  var wins = {}, z = 10;
+  var taskBar = $("#task-buttons");
+  var INTERACTIVE = "button, input, a, textarea, .crumb, .ie-address, .ie-tab, .searchbox";
 
-  // deep-link: #works etc opens that window on load; #sec-xxx scrolls the paint canvas
-  var hashKey = location.hash.replace(/^#/, "");
-  if (hashKey && windows[hashKey]) openWindow(hashKey);
-  if (/^sec-/.test(hashKey)) {
+  function bigIcon(el) { return el.dataset.bigicon || el.dataset.icon.replace(/-16\.png$/, ".png"); }
+
+  function setMax(el, on) {
+    el.classList.toggle("max", on);
+    var b = $(".title-bar-controls [aria-label=Maximize], .title-bar-controls [aria-label=Restore]", el);
+    if (b) b.setAttribute("aria-label", on ? "Restore" : "Maximize");
+  }
+
+  function navRow(el) {
+    var parts = el.dataset.crumb.split(","), row = document.createElement("div");
+    row.className = "ex-nav";
+    row.innerHTML = '<button class="round back" disabled aria-label="Back">&#8592;</button><button class="round fwd" disabled aria-label="Forward">&#8594;</button>' +
+      '<div class="crumb"><img src="' + esc(el.dataset.icon) + '" alt="">' +
+      parts.map(function (p) { return '<span class="sep">&#9654;&#xFE0E;</span><a>' + esc(p) + "</a>"; }).join("") +
+      '<span class="grow"></span><span class="refresh">&#8635;</span></div>' +
+      '<div class="searchbox"><input type="search" placeholder="Search ' + esc(parts[parts.length - 1]) + '" aria-label="Search"><button aria-label="search"></button></div>';
+    return row;
+  }
+
+  function register(el) {
+    var key = el.id.slice(4), dialog = el.classList.contains("dialog");
+    var bar = document.createElement("div");
+    bar.className = "title-bar";
+    bar.innerHTML = '<div class="title-bar-text">' +
+      ("notext" in el.dataset ? "" : (el.dataset.icon ? '<img src="' + esc(el.dataset.icon) + '" alt="">' : "") + esc(el.dataset.title)) +
+      '</div><div class="title-bar-controls">' +
+      (dialog ? "" : '<button aria-label="Minimize"></button><button aria-label="Maximize"></button>') +
+      '<button aria-label="Close"></button></div>';
+    el.prepend(bar);
+    if (el.dataset.crumb) bar.after(navRow(el));
+    wins[key] = { el: el, btn: null, open: false, min: false };
+
+    el.addEventListener("pointerdown", function () { focus(key); });
+    bar.addEventListener("click", function (e) {
+      var b = e.target.closest("button");
+      if (!b) return;
+      var act = b.getAttribute("aria-label");
+      if (act === "Close") close(key);
+      else if (act === "Minimize") minimize(key);
+      else setMax(el, !el.classList.contains("max"));
+    });
+    if (!dialog) bar.addEventListener("dblclick", function (e) { if (!e.target.closest("button")) setMax(el, !el.classList.contains("max")); });
+    $$("[data-close]", el).forEach(function (b) { b.addEventListener("click", function () { close(key); }); });
+
+    // move from the title bar or any empty glass (ie bar, explorer nav row)
+    [bar].concat($$(".ie-bar, .ex-nav", el)).forEach(function (h) {
+      var ox, oy;
+      drag(h, function (e) {
+        if (e.target.closest(INTERACTIVE)) return false;
+        if (el.classList.contains("max") || el._snap) {
+          // win7: dragging a maximized/snapped window restores it under the cursor
+          var px = e.clientX / scale, ratio = (px - el.offsetLeft) / el.offsetWidth, r = el._prev || {};
+          setMax(el, false);
+          el._snap = false;
+          if (r.w) { el.style.width = r.w + "px"; el.style.height = r.h + "px"; }
+          el.style.left = px - el.offsetWidth * ratio + "px";
+          el.style.top = "0px";
+        }
+        ox = el.offsetLeft; oy = el.offsetTop;
+      }, function (dx, dy) {
+        el.style.left = clamp(ox + dx, 80 - el.offsetWidth, desktop.clientWidth - 80) + "px";
+        el.style.top = clamp(oy + dy, 0, desktop.clientHeight - 30) + "px";
+      }, function (ev) {
+        if (dialog) return;
+        // aero snap: top edge = maximize, side edges = half screen
+        var x = ev.clientX / scale, y = ev.clientY / scale, W = desktop.clientWidth, H = desktop.clientHeight;
+        if (y <= 2) { el._prev = { w: el.offsetWidth, h: el.offsetHeight }; setMax(el, true); }
+        else if (x <= 2 || x >= W - 2) {
+          el._prev = { w: el.offsetWidth, h: el.offsetHeight };
+          el._snap = true;
+          el.style.top = "0px"; el.style.height = H + "px"; el.style.width = W / 2 + "px";
+          el.style.left = (x <= 2 ? 0 : W / 2) + "px";
+        }
+      });
+    });
+
+    // resize from any edge or corner
+    if (!dialog) ["n", "s", "e", "w", "ne", "nw", "se", "sw"].forEach(function (d) {
+      var h = document.createElement("div"), r;
+      h.className = "rz " + d;
+      el.appendChild(h);
+      drag(h, function () {
+        if (el.classList.contains("max")) return false;
+        el._snap = false;
+        r = { x: el.offsetLeft, y: el.offsetTop, w: el.offsetWidth, h: el.offsetHeight };
+      }, function (dx, dy) {
+        var minW = 320, minH = 200;
+        if (d.indexOf("e") > -1) el.style.width = Math.max(minW, r.w + dx) + "px";
+        if (d.indexOf("s") > -1) el.style.height = Math.max(minH, r.h + dy) + "px";
+        if (d.indexOf("w") > -1) { var w = Math.max(minW, r.w - dx); el.style.width = w + "px"; el.style.left = r.x + r.w - w + "px"; }
+        if (d.indexOf("n") > -1) { var hh = Math.max(minH, r.h - dy); el.style.height = hh + "px"; el.style.top = Math.max(0, r.y + r.h - hh) + "px"; }
+      });
+    });
+  }
+
+  function taskBtn(key) {
+    var b = $('.task-btn[data-key="' + key + '"]', taskBar);
+    if (!b) {
+      b = document.createElement("button");
+      b.className = "task-btn";
+      b.dataset.key = key;
+      b.title = wins[key].el.dataset.title;
+      b.innerHTML = '<img src="' + esc(bigIcon(wins[key].el)) + '" alt="">';
+      taskBar.appendChild(b);
+    }
+    return b;
+  }
+
+  function anim(el, kind, done) {
+    if (reduce) { if (done) done(); return; }
+    var frames = {
+      open: [{ opacity: 0, transform: "scale(.94)" }, { opacity: 1, transform: "none" }],
+      close: [{ opacity: 1, transform: "none" }, { opacity: 0, transform: "scale(.95)" }],
+      min: [{ opacity: 1, transform: "none" }, { opacity: 0, transform: "translateY(35%) scale(.4)" }],
+      restore: [{ opacity: 0, transform: "translateY(35%) scale(.4)" }, { opacity: 1, transform: "none" }]
+    }[kind];
+    var a = el.animate(frames, { duration: kind === "close" ? 120 : 170, easing: "ease-out" });
+    if (done) a.onfinish = done;
+  }
+
+  function focus(key) {
+    var w = wins[key];
+    if (w && w.el.style.zIndex != z) w.el.style.zIndex = ++z;
+    Object.keys(wins).forEach(function (k) {
+      wins[k].el.classList.toggle("active", k === key);
+      if (wins[k].btn) wins[k].btn.classList.toggle("on", k === key);
+    });
+  }
+  // after a close/minimize, activate whatever is on top (like windows does)
+  function focusTop() {
+    var top = null;
+    Object.keys(wins).forEach(function (k) {
+      var w = wins[k];
+      if (w.open && !w.min && (!top || +w.el.style.zIndex > +wins[top].el.style.zIndex)) top = k;
+    });
+    focus(top);
+  }
+
+  function open(key) {
+    if (actions[key]) return actions[key]();
+    if (folders[key]) { navigate(key); key = "explorer"; }
+    var w = wins[key];
+    if (!w) return;
+    if (w.min) return restore(key);
+    if (!w.open) {
+      w.open = true;
+      w.el.hidden = false;
+      anim(w.el, "open");
+      if (!w.el.classList.contains("dialog")) {
+        w.btn = taskBtn(key);
+        w.btn.classList.add("running");
+      }
+    }
+    focus(key);
+  }
+
+  function minimize(key) {
+    var w = wins[key];
+    if (!w || !w.open || w.min) return;
+    w.min = true;
+    w.btn.classList.remove("on");
+    anim(w.el, "min", function () { if (w.min) w.el.hidden = true; });
+    focusTop();
+  }
+
+  function restore(key) {
+    var w = wins[key];
+    if (!w || !w.min) return;
+    w.min = false;
+    w.el.hidden = false;
+    anim(w.el, "restore");
+    focus(key);
+  }
+
+  function close(key) {
+    var w = wins[key];
+    if (!w || !w.open) return;
+    w.open = false; w.min = false;
+    if (w.btn) {
+      if ("pinned" in w.btn.dataset) w.btn.classList.remove("running", "on");
+      else w.btn.remove();
+      w.btn = null;
+    }
+    if (w.onclose) w.onclose();
+    if (key === "player") audio.pause();
+    // temp windows leave the registry now, so reopening never finds a half-closed one
+    if (w.el.dataset.temp) delete wins[key];
+    anim(w.el, "close", function () {
+      w.el.hidden = true;
+      if (w.el.dataset.temp) w.el.remove();
+    });
+    focusTop();
+  }
+
+  // builds a throwaway window (work pages, games, dialogs) and opens it
+  var cascade = 0;
+  function spawn(key, title, icon, html, o) {
+    if (wins[key]) { open(key); return null; }
+    var el = document.createElement("div"), dw = desktop.clientWidth, dh = desktop.clientHeight;
+    var w = Math.min(o.w, dw - 20), h = o.h && Math.min(o.h, dh - 20), c = cascade++ % 5;
+    el.id = "win-" + key;
+    el.className = "window glass " + (o.cls || "");
+    el.dataset.title = title;
+    el.dataset.icon = icon;
+    el.dataset.temp = 1;
+    if (o.notext) el.dataset.notext = "";
+    if (o.bigIcon) el.dataset.bigicon = o.bigIcon;
+    el.style.width = w + "px";
+    if (h) el.style.height = h + "px";
+    el.innerHTML = html;
+    desktop.appendChild(el);
+    register(el);
+    var eh = el.offsetHeight, off = o.cls && o.cls.indexOf("dialog") > -1 ? 0 : c * 26 - 50;
+    el.style.left = clamp((dw - w) / 2 + off, 0, dw - w) + "px";
+    el.style.top = clamp((dh - eh) / 2 + off, 0, Math.max(0, dh - eh)) + "px";
+    if (o.onclose) wins[key].onclose = o.onclose;
+    open(key);
+    return el;
+  }
+
+  $$("#desktop > .window").forEach(register);
+
+  // clicking into an iframe doesn't bubble out, so catch it via blur
+  addEventListener("blur", function () {
     setTimeout(function () {
-      var c = document.getElementById("paint-canvas"), t = document.getElementById(hashKey);
-      if (c && t) c.scrollTop = t.offsetTop - 10;
-    }, 60);
+      var f = document.activeElement, w = f && f.tagName === "IFRAME" && f.closest(".window");
+      if (w) focus(w.id.slice(4));
+    });
+  });
+
+  taskBar.addEventListener("click", function (e) {
+    var b = e.target.closest(".task-btn");
+    if (!b) return;
+    var key = b.dataset.key, w = wins[key];
+    if (key === "explorer" && !w.open) { sfx("click"); open("works"); }
+    else if (!w.open || w.min) open(key);
+    else if (b.classList.contains("on")) minimize(key);
+    else focus(key);
+  });
+
+  /* -------------------------------------------------------------
+     DIALOGS
+     ------------------------------------------------------------- */
+  var msgN = 0;
+  function msgbox(title, img, html, btns, sound) {
+    var key = "msg" + msgN++;
+    var el = spawn(key, title, "", '<div class="window-body" style="padding:0">' +
+      '<div class="msg-body">' + img + "<div>" + html + "</div></div>" +
+      '<div class="msg-btns">' + btns.map(function (b, i) { return '<button data-i="' + i + '"' + (i ? "" : ' class="default"') + ">" + esc(b.label) + "</button>"; }).join("") + "</div></div>",
+      { w: 400, cls: "dialog" });
+    $(".msg-btns", el).addEventListener("click", function (e) {
+      var b = e.target.closest("button");
+      if (!b) return;
+      close(key);
+      if (btns[b.dataset.i].fn) btns[b.dataset.i].fn();
+    });
+    $(".msg-btns .default", el).focus();
+    sfx(sound || "ding");
   }
 
   /* -------------------------------------------------------------
-     PAINT: toolbox + palette + menu scroll
+     EXPLORER — one window that navigates between my_works, Games and
+     the Recycle Bin in place, with working back/forward
      ------------------------------------------------------------- */
-  // real MS Paint tool strip (jspaint classic sprite, 16 tools x 16px)
-  var tg = document.getElementById("tool-grid");
-  if (tg) {
-    for (var ti = 0; ti < 16; ti++) {
-      var b = document.createElement("div");
-      b.className = "tool" + (ti === 6 ? " on" : "");
-      var ic = document.createElement("i");
-      ic.style.backgroundPosition = (-ti * 16) + "px 0";
-      b.appendChild(ic);
-      b.addEventListener("click", (function (btn) {
-        return function () {
-          tg.querySelectorAll(".tool.on").forEach(function (t) { t.classList.remove("on"); });
-          btn.classList.add("on");
-        };
-      })(b));
-      tg.appendChild(b);
+  var TREE = [
+    ["", "", "Favorites", 1],
+    ["blog", "img/icons/ie-16.png", "nyaku's homepage"],
+    ["contact", "img/icons/mail-16.png", "contact me"],
+    ["", "img/icons/documents-16.png", "Libraries", 1],
+    ["works", "img/icons/folder-16.png", "my_works"],
+    ["games", "img/icons/games-16.png", "Games"],
+    ["player", "img/icons/music-16.png", "Music"],
+    ["computer", "img/icons/computer-16.png", "Computer", 1],
+    ["recycle", "img/icons/recycle-16.png", "Recycle Bin", 1]
+  ];
+  var binFull = true;
+  var folders = {
+    works: {
+      title: "my_works", icon: "img/icons/folder-16.png", crumb: ["nyaku", "my_works"],
+      cmds: "<button>Organize &#9662;</button><button>Share with &#9662;</button><button>Slide show</button><button>New folder</button>",
+      items: function () {
+        return works.map(function (w, i) {
+          return { name: w.title, img: w.thumb, thumb: true, open: function () { openWork(i); },
+            rows: [["Role:", w.role], ["Platform:", w.where || "-"], ["Type:", "nyaku project"]] };
+        });
+      }
+    },
+    games: {
+      title: "Games", icon: "img/icons/games-16.png", crumb: ["nyaku", "Games"],
+      cmds: "<button>Organize &#9662;</button><button>Options</button><button>Tools &#9662;</button><button>Parental Controls</button>",
+      items: function () {
+        return games.map(function (g, i) {
+          return { name: g.name, img: g.icon || "img/icons/app.png", shortcut: true, open: function () { openGame(i); },
+            rows: [["Type:", "Shortcut"], ["Target:", g.url]] };
+        });
+      }
+    },
+    recycle: {
+      title: "Recycle Bin", crumb: ["Recycle Bin"],
+      icon: function () { return binFull ? "img/icons/recycle-full-16.png" : "img/icons/recycle-16.png"; },
+      cmds: '<button>Organize &#9662;</button><button data-cmd="empty">Empty the Recycle Bin</button><button data-cmd="restore">Restore all items</button>',
+      count: function () { return binFull ? 3 : 0; },
+      table: function () {
+        return '<table class="has-shadow"><thead><tr><th>Name</th><th>Original Location</th><th>Date Deleted</th><th>Size</th><th>Item type</th></tr></thead><tbody>' + (binFull ?
+          '<tr><td><img src="img/icons/app-16.png" alt="">professionalism.dll</td><td>C:\\Users\\nyaku\\brain</td><td>8/14/2007 3:00 AM</td><td>1 KB</td><td>Application extension</td></tr>' +
+          '<tr><td><img src="img/icons/text-16.png" alt="">sleep_schedule.bak</td><td>C:\\Users\\nyaku\\life</td><td>1/1/2019 4:12 AM</td><td>0 KB</td><td>BAK File</td></tr>' +
+          '<tr><td><img src="img/icons/folder-16.png" alt="">67 unfinished projects</td><td>C:\\Users\\nyaku\\ideas</td><td>yesterday</td><td>6.7 GB</td><td>File folder</td></tr>' : "") +
+          "</tbody></table>";
+      }
     }
+  };
+
+  var exEl = $("#win-explorer"), exView = $("#ex-view"), exDetails = $("#ex-details"), exSearch = $("#ex-search");
+  var exBack = $(".ex-nav .back", exEl), exFwd = $(".ex-nav .fwd", exEl);
+  var exCur = null, exHist = [], exPos = -1;
+  $("#ex-tree").innerHTML = TREE.map(function (t) {
+    var ico = t[1] ? '<img src="' + t[1] + '" alt="">' : '<span class="star">&#9733;</span>';
+    return "<a" + (t[0] ? ' data-open="' + t[0] + '"' : "") + ' class="' + (t[3] ? "top" : "") + '" data-node="' + t[0] + '">' + ico + t[2] + "</a>";
+  }).join("");
+
+  function iconOf(f) { return typeof f.icon === "function" ? f.icon() : f.icon; }
+  function exIdle() {
+    var f = folders[exCur], n = f.count ? f.count() : f.items().length;
+    exDetails.innerHTML = '<div class="d-ico"><img src="' + bigIcon(exEl) + '" alt=""></div><div class="d-name">' + n + " item" + (n === 1 ? "" : "s") + "</div>";
   }
 
-  var PAL = ["#000000","#808080","#800000","#808000","#008000","#008080","#000080","#800080",
-             "#808040","#004040","#0080ff","#0040a0","#8000ff","#804000",
-             "#ffffff","#c0c0c0","#ff0000","#ffff00","#00ff00","#00ffff","#0000ff","#ff00ff",
-             "#ffff80","#00ff80","#80ffff","#8080ff","#ff0080","#ff8040"];
-  var sw = document.getElementById("swatches");
-  if (sw) {
-    PAL.forEach(function (c) {
-      var i = document.createElement("i");
-      i.style.background = c;
-      i.title = c;
-      i.addEventListener("click", function () {
-        var pc = document.querySelector(".pal-current");
-        if (pc) pc.style.background = c;
+  function navigate(key, fromHistory) {
+    var f = folders[key];
+    if (!fromHistory && key !== exCur) {
+      exHist = exHist.slice(0, exPos + 1).concat(key);
+      exPos = exHist.length - 1;
+    }
+    exCur = key;
+    exEl.dataset.title = f.title;
+    exEl.dataset.icon = iconOf(f);
+    var btn = wins.explorer && wins.explorer.btn;
+    if (btn) { $("img", btn).src = bigIcon(exEl); btn.title = f.title; }
+    $("#ex-crumb-ico").src = iconOf(f);
+    $("#ex-crumb").innerHTML = f.crumb.map(function (p) { return '<span class="sep">&#9654;&#xFE0E;</span><a>' + esc(p) + "</a>"; }).join("");
+    exSearch.value = "";
+    exSearch.placeholder = "Search " + f.title;
+    $("#ex-cmds").innerHTML = f.cmds + '<span class="grow"></span><button title="Change your view">&#9638; &#9662;</button>';
+    $$("#ex-tree a").forEach(function (a) { a.classList.toggle("on", a.dataset.node === key); });
+    exBack.disabled = exPos <= 0;
+    exFwd.disabled = exPos >= exHist.length - 1;
+
+    if (f.table) {
+      exView.className = "ex-view details-view has-scrollbar";
+      exView.innerHTML = f.table();
+    } else {
+      exView.className = "ex-view files has-scrollbar";
+      exView.innerHTML = "";
+      var items = f.items();
+      if (!items.length) exView.innerHTML = '<div class="empty">This folder is empty.</div>';
+      items.forEach(function (it) {
+        var b = document.createElement("button");
+        b.className = "file" + (it.shortcut ? " shortcut" : "");
+        b.innerHTML = '<span class="ico"><img src="' + esc(it.img) + '" alt=""' + (it.thumb ? ' class="thumb"' : "") + "></span><span>" + esc(it.name) + "</span>";
+        function go() { sfx("click"); it.open(); }
+        b.addEventListener("click", function () {
+          $$(".file.selected", exView).forEach(function (x) { x.classList.remove("selected"); });
+          b.classList.add("selected");
+          exDetails.innerHTML = '<div class="d-ico"><img src="' + esc(it.img) + '" alt=""' + (it.thumb ? ' class="thumb"' : "") + "></div>" +
+            '<div><div class="d-name">' + esc(it.name) + '</div><div class="d-grid">' +
+            it.rows.map(function (r) { return "<b>" + esc(r[0]) + "</b><span>" + esc(r[1]) + "</span>"; }).join("") + "</div></div>";
+          if (coarse) go();
+        });
+        b.addEventListener("dblclick", go);
+        b.addEventListener("keydown", function (e) { if (e.key === "Enter") { e.preventDefault(); go(); } });
+        exView.appendChild(b);
       });
-      sw.appendChild(i);
-    });
-  }
-
-  // rainbow text = solid web-safe letters (renders on a 256-colour display)
-  var RB = ["#ff0000", "#ff6600", "#ffcc00", "#009900", "#0066ff", "#6600cc", "#cc0099"];
-  document.querySelectorAll(".rainbow-txt").forEach(function (el) {
-    var txt = el.textContent, out = "";
-    for (var i = 0; i < txt.length; i++) {
-      out += '<i style="color:' + RB[i % RB.length] + '">' + txt[i] + '</i>';
     }
-    el.innerHTML = out;
+    exIdle();
+  }
+
+  exBack.addEventListener("click", function () { if (exPos > 0) { sfx("click"); navigate(exHist[--exPos], true); } });
+  exFwd.addEventListener("click", function () { if (exPos < exHist.length - 1) { sfx("click"); navigate(exHist[++exPos], true); } });
+  exView.addEventListener("click", function (e) {
+    if (e.target !== exView) return;
+    $$(".file.selected", exView).forEach(function (x) { x.classList.remove("selected"); });
+    exIdle();
   });
-
-  // menu bar / in-canvas anchor scrolling
-  document.querySelectorAll("[data-scroll]").forEach(function (n) {
-    n.addEventListener("click", function (e) {
-      e.preventDefault();
-      var canvas = document.getElementById("paint-canvas");
-      var target = document.getElementById(n.getAttribute("data-scroll"));
-      if (canvas && target) {
-        openWindow("paint");
-        canvas.scrollTo({ top: target.offsetTop - 10, behavior: "smooth" });
-      }
-    });
+  // search box filters the current folder as you type
+  exSearch.addEventListener("input", function () {
+    var q = exSearch.value.trim().toLowerCase();
+    $$(".file, tbody tr", exView).forEach(function (x) { x.hidden = q && x.textContent.toLowerCase().indexOf(q) < 0; });
   });
-
-  /* -------------------------------------------------------------
-     OPEN TRIGGERS  (icons, start menu, in-page links)
-     ------------------------------------------------------------- */
-  function bindOpeners(scope) {
-    scope.querySelectorAll("[data-open]").forEach(function (node) {
-      if (node.__bound) return; node.__bound = true;
-      var handler = function (e) {
-        e.preventDefault();
-        openWindow(node.getAttribute("data-open"));
-        closeStart();
-      };
-      // desktop icons open on dblclick, everything else on click
-      if (node.classList.contains("desk-icon")) {
-        node.addEventListener("dblclick", handler);
-        node.addEventListener("click", function () { selectIcon(node); });
-      } else {
-        node.addEventListener("click", handler);
-      }
-    });
-    scope.querySelectorAll("[data-url]").forEach(function (node) {
-      if (node.__bound) return; node.__bound = true;
-      node.addEventListener("dblclick", function () { spawnPopup(node.getAttribute("data-url")); });
-      node.addEventListener("click", function () { selectIcon(node); });
-    });
-  }
-  bindOpeners(document);
-
-  var trollIcon = document.getElementById("troll-icon");
-  if (trollIcon) {
-    trollIcon.addEventListener("dblclick", function () { spawnTroll(); });
-    trollIcon.addEventListener("click", function () { selectIcon(trollIcon); });
-  }
-
-  function selectIcon(node) {
-    document.querySelectorAll(".desk-icon.selected").forEach(function (n) { n.classList.remove("selected"); });
-    node.classList.add("selected");
-  }
-  desktop.addEventListener("mousedown", function (e) {
-    if (e.target === desktop || e.target.id === "icon-layer") {
-      document.querySelectorAll(".desk-icon.selected").forEach(function (n) { n.classList.remove("selected"); });
-      closeStart();
+  $("#ex-cmds").addEventListener("click", function (e) {
+    var b = e.target.closest("[data-cmd]");
+    if (!b) return;
+    if (b.dataset.cmd === "restore") {
+      msgbox("Recycle Bin", '<img class="big" src="img/icons/recycle-full.png" alt="">', "<p>nope. some things should stay deleted.</p>", [{ label: "OK" }]);
+    } else if (binFull) {
+      msgbox("Delete Multiple Items", '<img class="big" src="img/icons/recycle-full.png" alt="">',
+        "<p>Are you sure you want to permanently delete these 3 items?</p><p>(nothing of value will be lost.)</p>",
+        [{ label: "Yes", fn: function () {
+          binFull = false;
+          sfx("recycle");
+          $$(".recycle-ico").forEach(function (i) { i.src = "img/icons/recycle.png"; });
+          if (exCur === "recycle") navigate("recycle", true);
+        } }, { label: "No" }], "notify");
     }
   });
+  // a fresh window starts a fresh history
+  wins.explorer.onclose = function () { exHist = []; exPos = -1; exCur = null; };
 
   /* -------------------------------------------------------------
-     START MENU
+     WORK PAGES (ie9) + GAMES (app windows)
      ------------------------------------------------------------- */
-  function closeStart() { startMenu.classList.remove("open"); startBtn.classList.remove("active"); }
-  startBtn.addEventListener("click", function (e) {
-    e.stopPropagation();
-    startMenu.classList.toggle("open");
-    startBtn.classList.toggle("active");
+  var SITE = "http://www.nyakuverse.net/";
+  // embedded third-party frames load "credentialless" so they still work when the page is cross-origin isolated
+  var FRAME = (canIsolate ? " credentialless" : "");
+  function ieBar(url, tab) {
+    return '<div class="ie-bar"><button class="round back" disabled aria-label="Back">&#8592;</button><button class="round fwd" disabled aria-label="Forward">&#8594;</button>' +
+      '<div class="ie-address"><img src="img/icons/ie-16.png" alt=""><span>' + esc(url) + '</span><button class="ie-refresh" aria-label="Refresh">&#8635;</button></div>' +
+      '<div class="ie-tab"><img src="assets/nyaku_pixelartpfp.gif" alt=""><span>' + esc(tab) + "</span><i>&times;</i></div>" +
+      '<div class="ie-tools"><a data-open="blog" title="Home">&#8962;</a><a title="Favorites">&#9734;</a><a title="Tools">&#9881;</a></div></div>';
+  }
+
+  function openWork(i) {
+    var w = works[i], slug = w.title.toLowerCase().replace(/[^a-z0-9]+/g, "-");
+    var paras = String(w.desc || "").split(/\n\s*\n/).map(function (p) { return "<p>" + esc(p) + "</p>"; }).join("");
+    spawn("work" + i, w.title + " - Windows Internet Explorer", "img/icons/ie-16.png",
+      ieBar(SITE + "works/" + slug + ".html", w.title + " - nyakuverse") +
+      '<div class="window-body viewport has-scrollbar"><div class="aero permalink"><section class="panel">' +
+      "<h2>" + esc(w.title) + '<a class="more" data-open="works">all works &raquo;</a></h2><div class="panel-body">' +
+      '<img class="hero" src="' + esc(w.thumb) + '" alt="">' +
+      '<div class="meta"><span class="pill">' + esc(w.role) + "</span>" + (w.where ? '<span class="pill green">' + esc(w.where) + "</span>" : "") + "</div>" +
+      paras +
+      (w.embed ? '<iframe class="embed" src="' + esc(w.embed) + '" allow="autoplay; encrypted-media; fullscreen" allowfullscreen' + FRAME + "></iframe>" : "") +
+      '<div class="actions">' + (w.link ? '<a class="gel green" href="' + esc(w.link) + '" target="_blank" rel="noopener">Visit &raquo;</a>' : "") + '<a class="gel" data-close data-open="blog">&laquo; Back to home</a></div>' +
+      "</div></section></div></div>",
+      { w: 900, h: 720, notext: true, bigIcon: "img/icons/ie.png" });
+  }
+
+  function openGame(i) {
+    var g = games[i], icon = g.icon || "img/icons/app.png";
+    // a normal 1280x720 window (or the game's own w/h), shrunk to fit if the screen is smaller
+    var gw = g.w || 1280, gh = g.h || 720;
+    var k = Math.min(1, (desktop.clientWidth - 40) / gw, (desktop.clientHeight - 60) / gh);
+    gw = Math.round(gw * k); gh = Math.round(gh * k);
+    var el = spawn("game" + i, g.name, icon,
+      '<div class="window-body game-body"><iframe src="' + esc(g.url) + '" title="' + esc(g.name) + '"' +
+      ' allow="autoplay; fullscreen; gamepad; clipboard-write; cross-origin-isolated" allowfullscreen' + FRAME + "></iframe></div>",
+      { w: gw + 20, h: gh + 50, bigIcon: icon });
+    if (!el) return;
+    var frame = $("iframe", el);
+    // size the window so the game area is exactly gw x gh, then re-center
+    el.style.width = el.offsetWidth + gw - frame.clientWidth + "px";
+    el.style.height = el.offsetHeight + gh - frame.clientHeight + "px";
+    el.style.left = Math.max(0, (desktop.clientWidth - el.offsetWidth) / 2) + "px";
+    el.style.top = Math.max(0, (desktop.clientHeight - el.offsetHeight) / 2) + "px";
+  }
+
+  /* -------------------------------------------------------------
+     THE BLOG
+     ------------------------------------------------------------- */
+  var blogView = $("#blog-view"), ieUrl = $("#ie-url");
+  function goto(id) {
+    open("blog");
+    var t = id === "top" ? null : document.getElementById(id);
+    blogView.scrollTo({ top: t ? t.offsetTop - 20 : 0, behavior: reduce ? "auto" : "smooth" });
+    ieUrl.textContent = SITE + (t ? "#" + id : "");
+    sfx("click");
+  }
+
+  var set = $("#work-set");
+  works.forEach(function (w, i) {
+    var a = document.createElement("a");
+    a.className = "work-card";
+    a.innerHTML = '<img src="' + esc(w.thumb) + '" alt=""><b>' + esc(w.title) + '</b><span class="pill">' + esc(w.role) + "</span>";
+    a.addEventListener("click", function () { sfx("click"); openWork(i); });
+    set.appendChild(a);
   });
+
+  var RB = ["#ff0000", "#ff6600", "#cc9900", "#009900", "#0066ff", "#6600cc", "#cc0099"];
+  $$(".rainbow").forEach(function (el) {
+    el.innerHTML = el.textContent.split("").map(function (ch, i) { return '<i style="color:' + RB[i % RB.length] + '">' + esc(ch) + "</i>"; }).join("");
+  });
+  $("#last-updated").textContent = new Date().toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+  $("#year").textContent = new Date().getFullYear();
+
+  var heartSound;
+  $("#heart").addEventListener("click", function () {
+    heartSound = heartSound || new Audio("assets/bibuttonmeme.ogg");
+    audio.pause();
+    heartSound.currentTime = 0;
+    heartSound.play();
+  });
+
+  $("#mail-send").addEventListener("click", function () {
+    location.href = "mailto:nyakusfx@gmail.com?subject=" + encodeURIComponent($("#mail-subj").value) +
+      "&body=" + encodeURIComponent($("#mail-body").value);
+  });
+
+  // slide show gadget
+  var slides = $$("#slideshow img"), slide = 0;
+  setInterval(function () {
+    slides[slide].classList.remove("on");
+    slide = (slide + 1) % slides.length;
+    slides[slide].classList.add("on");
+  }, 6000);
+  $("#slideshow").addEventListener("dblclick", function () { goto("media-post"); });
+
+  /* -------------------------------------------------------------
+     DESKTOP, START MENU, TRAY
+     ------------------------------------------------------------- */
+  function deselect() { $$(".desk-icon.selected").forEach(function (n) { n.classList.remove("selected"); }); }
+  function launch(key) { if (FOLDERS[key]) sfx("click"); open(key); }
+  $$(".desk-icon").forEach(function (ic) {
+    ic.addEventListener("click", function () { deselect(); ic.classList.add("selected"); if (coarse) launch(ic.dataset.open); });
+    ic.addEventListener("dblclick", function () { launch(ic.dataset.open); });
+    ic.addEventListener("keydown", function (e) { if (e.key === "Enter") { e.preventDefault(); launch(ic.dataset.open); } });
+  });
+  desktop.addEventListener("pointerdown", function (e) {
+    if (e.target === desktop || e.target.id === "icon-layer") { deselect(); focus(null); }
+  });
+
+  var startBtn = $("#start-btn"), startMenu = $("#start-menu"), smSearch = $("#sm-search");
+  function startOpen(on) {
+    startMenu.hidden = !on;
+    startBtn.classList.toggle("on", on);
+    if (!on && smSearch.value) { smSearch.value = ""; smFilter(); }
+    if (on) smSearch.focus();
+  }
+  startBtn.addEventListener("click", function () { startOpen(startMenu.hidden); });
+  addEventListener("keydown", function (e) { if (e.key === "Escape") startOpen(false); });
+
+  // start menu search: programs + every work and game
+  var smIndex = $$("#sm-list .sm-item").map(function (b) {
+    return { label: b.textContent, icon: $("img", b).getAttribute("src"), run: function () { launch(b.dataset.open); } };
+  }).concat(
+    [["Computer", "img/icons/computer.png", "computer"], ["Control Panel", "img/icons/computer.png", "computer"], ["Recycle Bin", "img/icons/recycle.png", "recycle"]]
+      .map(function (x) { return { label: x[0], icon: x[1], run: function () { launch(x[2]); } }; }),
+    works.map(function (w, i) { return { label: w.title, icon: w.thumb, run: function () { sfx("click"); openWork(i); } }; }),
+    games.map(function (g, i) { return { label: g.name, icon: g.icon || "img/icons/app.png", run: function () { openGame(i); } }; })
+  );
+  var smList = $("#sm-list"), smResults = $("#sm-results"), smHits = [];
+  function smFilter() {
+    var q = smSearch.value.trim().toLowerCase();
+    smList.hidden = !!q;
+    smResults.hidden = !q;
+    if (!q) return;
+    smHits = smIndex.filter(function (x) { return x.label.toLowerCase().indexOf(q) > -1; });
+    smResults.innerHTML = smHits.length ? smHits.map(function (x, i) {
+      return '<button class="sm-item' + (i ? "" : " first") + '" data-hit="' + i + '"><img src="' + esc(x.icon) + '" alt="">' + esc(x.label) + "</button>";
+    }).join("") : '<div class="none">No items match your search.</div>';
+  }
+  smSearch.addEventListener("input", smFilter);
+  smSearch.addEventListener("keydown", function (e) {
+    if (e.key === "Enter" && smHits.length && smSearch.value.trim()) { smHits[0].run(); startOpen(false); }
+  });
+  smResults.addEventListener("click", function (e) {
+    var b = e.target.closest("[data-hit]");
+    if (b) { smHits[b.dataset.hit].run(); startOpen(false); }
+  });
+
   document.addEventListener("click", function (e) {
-    if (!startMenu.contains(e.target) && e.target !== startBtn && !startBtn.contains(e.target)) closeStart();
+    if (!e.target.closest("#start-menu, #start-btn")) startOpen(false);
+    var t = e.target.closest("[data-open], [data-goto], [data-play]");
+    if (!t || t.classList.contains("desk-icon")) return;
+    e.preventDefault();
+    if ("play" in t.dataset) togglePlay();
+    else if (t.dataset.goto) goto(t.dataset.goto);
+    else launch(t.dataset.open);
+    if (t.closest("#start-menu")) startOpen(false);
   });
-  document.getElementById("sm-pet").addEventListener("click", function () { petBear(); closeStart(); });
-  document.getElementById("sm-shutdown").addEventListener("click", function () { closeStart(); shutdown(); });
 
-  /* -------------------------------------------------------------
-     CLOCK
-     ------------------------------------------------------------- */
-  var clock = document.getElementById("clock");
+  // show desktop: minimize everything, click again to bring it back
+  var peeked = null;
+  $("#show-desktop").addEventListener("click", function () {
+    if (peeked) { peeked.forEach(restore); peeked = null; return; }
+    peeked = Object.keys(wins).filter(function (k) { return wins[k].open && !wins[k].min; });
+    peeked.forEach(minimize);
+  });
+
+  var clockT = $("#clock-time"), clockD = $("#clock-date");
   function tick() {
     var d = new Date();
-    var h = d.getHours(), m = d.getMinutes();
-    var ap = h >= 12 ? "PM" : "AM";
-    h = h % 12; if (h === 0) h = 12;
-    clock.textContent = h + ":" + (m < 10 ? "0" + m : m) + " " + ap;
+    clockT.textContent = d.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" });
+    clockD.textContent = d.toLocaleDateString("en-US");
+    $("#clock").title = d.toLocaleDateString("en-US", { weekday: "long", year: "numeric", month: "long", day: "numeric" });
   }
-  tick(); setInterval(tick, 15000);
+  tick(); setInterval(tick, 10000);
+
+  var balloonEl = $("#balloon");
+  function balloon(title, text) {
+    balloonEl.innerHTML = "<b>" + esc(title) + "</b>" + esc(text);
+    balloonEl.hidden = false;
+    sfx("balloon");
+    clearTimeout(balloonEl._t);
+    balloonEl._t = setTimeout(function () { balloonEl.hidden = true; }, 9000);
+  }
+  balloonEl.addEventListener("click", function () { balloonEl.hidden = true; });
 
   /* -------------------------------------------------------------
-     POPUPS  (fake virus warning + image viewer)
-     ------------------------------------------------------------- */
-  var popupN = 0;
-  function spawnPopup(url) {
-    var el = document.createElement("div");
-    el.className = "window popup";
-    el.style.left = (180 + popupN * 26) + "px";
-    el.style.top = (140 + popupN * 26) + "px";
-    popupN++;
-    el.innerHTML =
-      '<div class="title-bar"><div class="title-bar-text">⚠ Image Viewer</div>' +
-      '<div class="title-bar-controls"><button class="tb-close"></button></div></div>' +
-      '<div class="window-body" style="background:#000;text-align:center;padding:4px;">' +
-      '<img src="' + url + '" alt="" style="max-width:420px;max-height:60vh;display:block;margin:auto;"></div>';
-    desktop.appendChild(el);
-    el.style.width = "auto";
-    el.querySelector(".tb-close").addEventListener("click", function () { el.remove(); });
-    var h = el.querySelector(".title-bar");
-    simpleDrag(el, h);
-    zTop += 1; el.style.zIndex = zTop;
-  }
-
-  /* -------------------------------------------------------------
-     DO_NOT_OPEN  (troll — you were warned)
-     ------------------------------------------------------------- */
-  var trollVideoEl = null;
-  function spawnTroll() {
-    if (mpAudio && !mpAudio.paused) mpAudio.pause();
-    var el = document.createElement("div");
-    el.className = "window popup";
-    el.style.left = (DESIGN_W / 2 - 210) + "px";
-    el.style.top = (DESIGN_H / 2 - 160) + "px";
-    el.innerHTML =
-      '<div class="title-bar"><div class="title-bar-text">⚠ can_you_blow_my_whistle.exe</div>' +
-      '<div class="title-bar-controls"><button class="tb-close"></button></div></div>' +
-      '<div class="window-body" style="background:#000;text-align:center;padding:4px;">' +
-      '<video src="assets/Josh%20Hutcherson%20Whistle.mp4" autoplay style="width:520px;height:auto;display:block;margin:auto;"></video></div>';
-    desktop.appendChild(el);
-    el.style.width = "auto";
-    var vid = el.querySelector("video");
-    vid.volume = 0.25;
-    trollVideoEl = vid;
-    el.querySelector(".tb-close").addEventListener("click", function () {
-      vid.pause(); el.remove(); trollVideoEl = null;
-    });
-    simpleDrag(el, el.querySelector(".title-bar"));
-    zTop += 1; el.style.zIndex = zTop;
-  }
-
-  function simpleDrag(el, handle) {
-    var sx, sy, ox, oy, on = false;
-    handle.addEventListener("mousedown", function (e) {
-      if (e.target.closest(".title-bar-controls")) return;
-      on = true;
-      var pos = toLogical(el.getBoundingClientRect());
-      el.style.left = pos.left + "px"; el.style.top = pos.top + "px"; el.style.right = "auto";
-      sx = e.clientX; sy = e.clientY; ox = pos.left; oy = pos.top;
-      zTop += 1; el.style.zIndex = zTop; e.preventDefault();
-    });
-    document.addEventListener("mousemove", function (e) {
-      if (!on) return;
-      el.style.left = (ox + (e.clientX - sx) / currentScale) + "px";
-      el.style.top = Math.max(0, oy + (e.clientY - sy) / currentScale) + "px";
-    });
-    document.addEventListener("mouseup", function () { on = false; });
-  }
-
-  /* -------------------------------------------------------------
-     PET THE BEAR  (easter egg)
+     EASTER EGGS + POWER (opened like windows via data-open)
      ------------------------------------------------------------- */
   var pets = 0;
-  function petBear() {
-    pets++;
-    var b = document.createElement("div");
-    b.className = "window popup";
-    b.style.left = (DESIGN_W / 2 - 150) + "px";
-    b.style.top = (DESIGN_H / 2 - 120) + "px";
-    var msg = pets === 1 ? "you pet the bear. the bear is pleased. 🐻"
-            : pets < 5 ? "the bear has been pet " + pets + " times. it purrs (?)."
-            : pets < 10 ? "ok that's " + pets + " pets. the bear is now your friend for life."
-            : "the bear has ascended. " + pets + " pets. you did this. 🐻✨";
-    b.innerHTML =
-      '<div class="title-bar"><div class="title-bar-text">🐻 bear.exe</div>' +
-      '<div class="title-bar-controls"><button class="tb-close"></button></div></div>' +
-      '<div class="window-body center"><img src="assets/bear.png" alt="" style="width:120px;" class="wob">' +
-      '<p>' + msg + '</p><button class="btn again">pet again</button></div>';
-    desktop.appendChild(b);
-    b.style.width = "300px";
-    zTop += 1; b.style.zIndex = zTop;
-    b.querySelector(".tb-close").addEventListener("click", function () { b.remove(); });
-    b.querySelector(".again").addEventListener("click", function () { b.remove(); petBear(); });
-    simpleDrag(b, b.querySelector(".title-bar"));
-  }
-
-  /* -------------------------------------------------------------
-     SHUT DOWN
-     ------------------------------------------------------------- */
-  function shutdown() {
-    var s = document.createElement("div");
-    s.style.cssText = "position:fixed;inset:0;background:#000;z-index:99999;color:#fff;" +
-      "display:flex;align-items:center;justify-content:center;flex-direction:column;text-align:center;" +
-      "font-family:'PixelOperator',monospace;font-size:22px;cursor:pointer;";
-    s.innerHTML = "<div style='color:#ffb000'>It's now safe to turn off<br>your computer.</div>" +
-      "<div style='font-size:13px;margin-top:24px;color:#888'>(jk. click anywhere to come back ♡)</div>";
-    document.body.appendChild(s);
-    s.addEventListener("click", function () {
-      s.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 300 }).onfinish = function () { s.remove(); };
-    });
-  }
-
-  /* -------------------------------------------------------------
-     MEDIA PLAYER  (one song, hardcoded by nyaku — no visitor choice)
-     to swap the song: drop the new mp3 in assets/medias/ and rename
-     MP_FILENAME below to match it exactly (keep "Title - Artist.mp3"
-     so the cover-art lookup keeps working)
-     ------------------------------------------------------------- */
-  var MP_FILENAME = "Punkrocker - Teddybears.mp3";
-  var mpAudio = document.getElementById("mp-audio");
-  if (mpAudio) {
-    var mpPlay = document.getElementById("mp-play");
-    var mpStop = document.getElementById("mp-stop");
-    var mpNext = document.getElementById("mp-next");
-    var mpPrev = document.getElementById("mp-prev");
-    var mpPlayIcon = document.getElementById("play-icon");
-    var mpTrack = document.getElementById("mp-track");
-    var mpArtist = document.getElementById("mp-artist");
-    var mpCover = document.getElementById("mp-cover-img");
-    var mpCur = document.getElementById("mp-cur");
-    var mpDur = document.getElementById("mp-dur");
-    var mpFill = document.getElementById("mp-progress-fill");
-    var mpProgress = document.getElementById("mp-progress");
-    var mpVolHud = document.getElementById("mp-vol-hud");
-    var ipodEl = document.querySelector("#win-player .ipod-container");
-
-    function fmtTime(s) {
-      if (!isFinite(s) || s < 0) s = 0;
-      var m = Math.floor(s / 60), sec = Math.floor(s % 60);
-      return m + ":" + (sec < 10 ? "0" + sec : sec);
+  var actions = {
+    troll: function () {
+      // user account control: dims the whole screen, taskbar included
+      var dim = document.createElement("div");
+      dim.id = "uac-dim";
+      wrap.appendChild(dim);
+      var el = spawn("uac", "User Account Control", "", '<div class="window-body">' +
+        '<div class="uac-head">Do you want to allow the following program from an unknown publisher to make changes to this computer?</div>' +
+        '<div class="uac-info"><img src="img/icons/app.png" alt=""><b>Program name:</b><span>do_not_open.exe</span><b>Publisher:</b><span><b>Unknown</b></span><b>File origin:</b><span>Hard drive on this computer</span></div>' +
+        '<div class="uac-foot"><span class="grow">Show details</span><button data-uac="yes">Yes</button><button data-uac="no" class="default">No</button></div></div>',
+        { w: 480, cls: "dialog uac", onclose: function () { dim.remove(); } });
+      if (!el) return;
+      $(".uac-foot", el).addEventListener("click", function (e) {
+        var b = e.target.closest("[data-uac]");
+        if (!b) return;
+        close("uac");
+        if (b.dataset.uac === "yes") whistle();
+      });
+    },
+    bear: function () {
+      pets++;
+      var msg = pets === 1 ? "you pet the bear. the bear is pleased." :
+        pets < 5 ? "the bear has been pet " + pets + " times. it purrs (?)." :
+        pets < 10 ? "ok that's " + pets + " pets. the bear is now your friend for life." :
+        "the bear has ascended. " + pets + " pets. you did this.";
+      msgbox("bear.exe", '<img class="bear" src="assets/bear.png" alt="a bear">', "<p>" + msg + "</p>",
+        [{ label: "Pet again", fn: actions.bear }, { label: "Close" }], pets === 10 ? "notify" : "ding");
+    },
+    shutdown: function () {
+      var s = document.createElement("div");
+      s.className = "power-screen";
+      s.innerHTML = '<div class="msg"><span class="spinner animate"></span><span>Logging off...</span></div>';
+      document.body.appendChild(s);
+      audio.pause();
+      sfx("logoff");
+      setTimeout(function () {
+        $(".msg span:last-child", s).textContent = "Shutting down...";
+        sfx("shutdown");
+      }, 1800);
+      setTimeout(function () {
+        s.className = "power-screen off";
+        s.innerHTML = '<div class="msg">click anywhere to turn the computer back on &#9825;</div>';
+        s.addEventListener("click", function () { s.remove(); boot(true); });
+      }, 4200);
     }
+  };
 
-    var mpBase = MP_FILENAME.replace(/\.[^.]+$/, "");
-    var mpParts = mpBase.split(/\s*-\s*/);
-    mpTrack.textContent = mpParts[0] || mpBase;
-    mpArtist.textContent = mpParts[1] || "";
-    mpAudio.src = "assets/medias/" + MP_FILENAME;
-    mpAudio.volume = 0.15;
+  function whistle() {
+    audio.pause();
+    var el = spawn("whistle", "can_you_blow_my_whistle.exe", "img/icons/app-16.png",
+      '<div class="window-body video-body"><video src="assets/Josh%20Hutcherson%20Whistle.mp4" autoplay playsinline></video></div>',
+      { w: 600, onclose: function () { $("video", el).pause(); } });
+    if (el) $("video", el).volume = 0.25;
+  }
 
-    // scroll the wheel to adjust volume, real-iPod style — shows a brief HUD
-    var volHudTimer;
-    if (ipodEl && mpVolHud) {
-      ipodEl.addEventListener("wheel", function (e) {
-        e.preventDefault();
-        mpAudio.volume = Math.min(1, Math.max(0, mpAudio.volume + (e.deltaY < 0 ? 0.05 : -0.05)));
-        mpVolHud.textContent = "VOLUME " + Math.round(mpAudio.volume * 100) + "%";
-        mpVolHud.classList.add("show");
-        clearTimeout(volHudTimer);
-        volHudTimer = setTimeout(function () { mpVolHud.classList.remove("show"); }, 1500);
-      }, { passive: false });
+  /* -------------------------------------------------------------
+     WINDOWS MEDIA PLAYER
+     ------------------------------------------------------------- */
+  var audio = $("#mp-audio");
+  var song = (window.SONG || "").replace(/\.[^.]+$/, "").split(/\s+-\s+/);
+  var seek = $("#mp-seek"), vol = $("#mp-vol"), timeEl = $("#mp-time");
+  var vis = $("#mp-vis"), vctx = vis.getContext("2d"), analyser, bins;
+  $$(".song-title").forEach(function (n) { n.textContent = song[0] || "no song"; });
+  $$(".song-artist").forEach(function (n) { n.textContent = song[1] || ""; });
+  audio.src = "assets/medias/" + window.SONG;
+
+  function setVol() { audio.volume = vol.value / 100; vol.style.setProperty("--p", vol.value + "%"); }
+  setVol();
+  vol.addEventListener("input", setVol);
+
+  function initVis() {
+    if (analyser) return;
+    try {
+      var ac = new (window.AudioContext || window.webkitAudioContext)();
+      analyser = ac.createAnalyser();
+      analyser.fftSize = 128;
+      bins = new Uint8Array(analyser.frequencyBinCount);
+      ac.createMediaElementSource(audio).connect(analyser);
+      analyser.connect(ac.destination);
+    } catch (e) { analyser = null; }
+  }
+  var grad = vctx.createLinearGradient(0, 48, 0, 0);
+  grad.addColorStop(0, "#0b3a7a"); grad.addColorStop(0.6, "#3aa0ff"); grad.addColorStop(1, "#c8ecff");
+  function drawVis() {
+    vctx.clearRect(0, 0, 300, 48);
+    if (!analyser || audio.paused) return;
+    analyser.getByteFrequencyData(bins);
+    vctx.fillStyle = grad;
+    for (var i = 0; i < 30; i++) {
+      var h = Math.round(bins[i + 1] / 255 * 46);
+      vctx.fillRect(i * 10, 48 - h, 8, h);
     }
-
-    mpAudio.addEventListener("error", function () {
-      mpTrack.textContent = "no song loaded yet";
-    });
-
-    // fetch real cover art via iTunes Search (JSONP, no key/CORS needed)
-    (function fetchCover(term) {
-      var cbName = "mpCoverCb" + Date.now();
-      var script = document.createElement("script");
-      window[cbName] = function (data) {
-        delete window[cbName];
-        script.remove();
-        if (data && data.resultCount > 0 && data.results[0].artworkUrl100) {
-          mpCover.src = data.results[0].artworkUrl100.replace("100x100bb", "600x600bb");
-        }
-      };
-      script.onerror = function () { delete window[cbName]; script.remove(); };
-      script.src = "https://itunes.apple.com/search?media=music&limit=1&callback=" + cbName +
-        "&term=" + encodeURIComponent(term);
-      document.body.appendChild(script);
-    })(mpBase.replace(/-/g, " "));
-
-    // click-wheel-area = play/pause, next/back = seek 10s, menu = stop
-    mpPlay.addEventListener("click", function () {
-      if (mpAudio.paused) mpAudio.play(); else mpAudio.pause();
-    });
-    mpStop.addEventListener("click", function () {
-      mpAudio.pause(); mpAudio.currentTime = 0;
-    });
-    mpNext.addEventListener("click", function () {
-      mpAudio.currentTime = Math.min(mpAudio.duration || 0, mpAudio.currentTime + 10);
-    });
-    mpPrev.addEventListener("click", function () {
-      mpAudio.currentTime = Math.max(0, mpAudio.currentTime - 10);
-    });
-
-    mpAudio.addEventListener("play", function () { mpPlayIcon.textContent = "❚❚"; });
-    mpAudio.addEventListener("pause", function () { mpPlayIcon.textContent = "▶"; });
-    mpAudio.addEventListener("loadedmetadata", function () {
-      mpDur.textContent = "-" + fmtTime(mpAudio.duration);
-    });
-    mpAudio.addEventListener("timeupdate", function () {
-      mpCur.textContent = fmtTime(mpAudio.currentTime);
-      mpDur.textContent = "-" + fmtTime(mpAudio.duration - mpAudio.currentTime);
-      var pct = mpAudio.duration ? (mpAudio.currentTime / mpAudio.duration) * 100 : 0;
-      mpFill.style.width = pct + "%";
-    });
-    mpProgress.addEventListener("click", function (e) {
-      if (!mpAudio.duration) return;
-      var r = mpProgress.getBoundingClientRect();
-      var pct = (e.clientX - r.left) / r.width;
-      mpAudio.currentTime = pct * mpAudio.duration;
-    });
+    requestAnimationFrame(drawVis);
   }
 
-  /* -------------------------------------------------------------
-     BI HEART  (click to play the meme sound)
-     ------------------------------------------------------------- */
-  var heartBtn = document.getElementById("lgbt-heart-btn");
-  if (heartBtn) {
-    var heartSound = new Audio("assets/bibuttonmeme.ogg");
-    heartBtn.addEventListener("click", function () {
-      if (trollVideoEl && !trollVideoEl.paused) trollVideoEl.pause();
-      if (mpAudio && !mpAudio.paused) mpAudio.pause();
-      heartSound.currentTime = 0;
-      heartSound.play();
-    });
+  function togglePlay() {
+    if (audio.paused) { initVis(); audio.play(); } else audio.pause();
   }
+  function fmt(s) { s = Math.floor(s || 0); return String(Math.floor(s / 60)).padStart(2, "0") + ":" + String(s % 60).padStart(2, "0"); }
+  $("#mp-stop").addEventListener("click", function () { audio.pause(); audio.currentTime = 0; });
+  $("#mp-prev").addEventListener("click", function () { audio.currentTime = Math.max(0, audio.currentTime - 10); });
+  $("#mp-next").addEventListener("click", function () { audio.currentTime = Math.min(audio.duration || 0, audio.currentTime + 10); });
+  $("#mp-loop").addEventListener("click", function () { audio.loop = !audio.loop; this.classList.toggle("on", audio.loop); });
+  $("#mp-mute").addEventListener("click", function () { audio.muted = !audio.muted; this.classList.toggle("on", audio.muted); });
+  seek.addEventListener("input", function () { if (audio.duration) audio.currentTime = seek.value / 1000 * audio.duration; });
+
+  audio.addEventListener("play", function () {
+    $$("[data-play]").forEach(function (b) { b.innerHTML = "&#10074;&#10074;"; });
+    drawVis();
+  });
+  audio.addEventListener("pause", function () {
+    $$("[data-play]").forEach(function (b) { b.innerHTML = "&#9654;&#xFE0E;"; });
+  });
+  audio.addEventListener("timeupdate", function () {
+    timeEl.textContent = fmt(audio.currentTime);
+    if (audio.duration) {
+      seek.value = audio.currentTime / audio.duration * 1000;
+      seek.style.setProperty("--p", seek.value / 10 + "%");
+    }
+  });
+  audio.addEventListener("error", function () { $$(".song-title").forEach(function (n) { n.textContent = "no song loaded"; }); });
 
   /* -------------------------------------------------------------
-     CURSOR-TRAIL SPARKLES
+     BOOT → LOGON (once per session) + initial windows
      ------------------------------------------------------------- */
-  var lastTrail = 0;
-  document.addEventListener("mousemove", function (e) {
-    var now = Date.now();
-    if (now - lastTrail < 55) return;
-    lastTrail = now;
-    var t = document.createElement("div");
-    t.className = "trail";
-    t.style.left = (e.clientX - 5) + "px";
-    t.style.top = (e.clientY - 5) + "px";
-    document.body.appendChild(t);
-    t.animate(
-      [{ opacity: 1, transform: "scale(1) rotate(0deg)" },
-       { opacity: 0, transform: "scale(.2) rotate(90deg)" }],
-      { duration: 650, easing: "ease-out" }
-    ).onfinish = function () { t.remove(); };
+  var bootEl = $("#boot"), logonEl = $("#logon"), userTile = $("#logon-user"), waitEl = $(".logon-wait");
+  function boot(force) {
+    var seen;
+    try { seen = sessionStorage.getItem("booted"); } catch (e) { seen = "1"; }
+    if (seen && !force) return;
+    bootEl.hidden = false;
+    setTimeout(function () {
+      bootEl.hidden = true;
+      logonEl.hidden = false;
+      userTile.hidden = false;
+      waitEl.hidden = true;
+      userTile.focus();
+    }, reduce ? 300 : 2600);
+  }
+  userTile.addEventListener("click", function () {
+    userTile.hidden = true;
+    waitEl.hidden = false;
+    try { sessionStorage.setItem("booted", "1"); } catch (e) {}
+    sfx("logon");
+    setTimeout(function () {
+      logonEl.hidden = true;
+      setTimeout(function () {
+        balloon("Welcome to nyaku's PC", "Double-click the icons on the desktop to look around. My works are in my_works, games are in Games.");
+      }, 900);
+    }, 1600);
   });
 
-  /* -------------------------------------------------------------
-     APP SPARKLES  (real sparkle gif twinkles on open app title bars)
-     ------------------------------------------------------------- */
-  function spawnSparkle(container, x, y) {
-    var spark = document.createElement("img");
-    spark.src = "assets/littlesparkle.gif";
-    spark.className = "app-sparkle";
-    spark.style.left = x + "px";
-    spark.style.top = y + "px";
-    container.appendChild(spark);
-    setTimeout(function () { spark.remove(); }, 1300);
-  }
-
-  setInterval(function () {
-    var bars = document.querySelectorAll(".window .title-bar");
-    bars.forEach(function (bar) {
-      var win = bar.closest(".window");
-      if (!win || win.style.display === "none") return;
-      spawnSparkle(bar, 8 + Math.random() * Math.max(0, bar.clientWidth - 60), -6);
-    });
-    document.querySelectorAll(".desk-icon").forEach(function (icon) {
-      if (Math.random() > 0.25) return;
-      spawnSparkle(icon, 4 + Math.random() * (icon.clientWidth - 32), Math.random() * 20);
-    });
-  }, 1400);
-
+  open("blog");
+  var hash = location.hash.slice(1);
+  if (wins[hash] && hash !== "blog") open(hash);
+  boot(false);
 })();
