@@ -13,7 +13,7 @@
   var works = window.WORKS || [], games = window.GAMES || [];
   var coarse = matchMedia("(pointer: coarse)").matches;
   var reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
-  var FOLDERS = { works: 1, games: 1, recycle: 1, computer: 1 };
+
 
   /* -------------------------------------------------------------
      CROSS-ORIGIN ISOLATION — some web games (SharedArrayBuffer) only run
@@ -32,6 +32,12 @@
       else navigator.serviceWorker.addEventListener("controllerchange", function () { location.reload(); });
     }).catch(function () {});
   }
+
+  // every click on anything clickable plays the click (text boxes and sliders stay quiet)
+  var CLICKABLE = "button, a, [data-open], [data-goto], [data-play], [data-place], [data-sort], [data-genre], [data-page], .desk-icon, .file, .refresh, #slideshow, #balloon";
+  document.addEventListener("click", function (e) {
+    if (e.target.closest(CLICKABLE)) sfx("click");
+  }, true);
 
   // win7 default sound scheme
   function sfx(name) {
@@ -316,8 +322,9 @@
     var b = e.target.closest(".task-btn");
     if (!b) return;
     var key = b.dataset.key, w = wins[key];
-    if (key === "explorer" && !w.open) { sfx("click"); open("works"); }
-    else if (!w.open || w.min) open(key);
+    if (key === "explorer" && !w.open) launch("works");
+    else if (!w.open) launch(key);
+    else if (w.min) open(key);
     else if (b.classList.contains("on")) minimize(key);
     else focus(key);
   });
@@ -440,7 +447,7 @@
         var b = document.createElement("button");
         b.className = "file" + (it.shortcut ? " shortcut" : "");
         b.innerHTML = '<span class="ico"><img src="' + esc(it.img) + '" alt=""' + (it.thumb ? ' class="thumb"' : "") + "></span><span>" + esc(it.name) + "</span>";
-        function go() { sfx("click"); it.open(); }
+        function go() { it.open(); }
         b.addEventListener("click", function () {
           $$(".file.selected", exView).forEach(function (x) { x.classList.remove("selected"); });
           b.classList.add("selected");
@@ -457,8 +464,9 @@
     exIdle();
   }
 
-  exBack.addEventListener("click", function () { if (exPos > 0) { sfx("click"); navigate(exHist[--exPos], true); } });
-  exFwd.addEventListener("click", function () { if (exPos < exHist.length - 1) { sfx("click"); navigate(exHist[++exPos], true); } });
+  exBack.addEventListener("click", function () { if (exPos > 0) { navigate(exHist[--exPos], true); } });
+  $(".crumb .refresh", exEl).addEventListener("click", function () { if (exCur) { navigate(exCur, true); } });
+  exFwd.addEventListener("click", function () { if (exPos < exHist.length - 1) { navigate(exHist[++exPos], true); } });
   exView.addEventListener("click", function (e) {
     if (e.target !== exView) return;
     $$(".file.selected", exView).forEach(function (x) { x.classList.remove("selected"); });
@@ -545,15 +553,14 @@
     var t = id === "top" ? null : document.getElementById(id);
     blogView.scrollTo({ top: t ? t.offsetTop - 20 : 0, behavior: reduce ? "auto" : "smooth" });
     ieUrl.textContent = SITE + (t ? "#" + id : "");
-    sfx("click");
-  }
+    }
 
   var set = $("#work-set");
   works.forEach(function (w, i) {
     var a = document.createElement("a");
     a.className = "work-card";
     a.innerHTML = '<img src="' + esc(w.thumb) + '" alt=""><b>' + esc(w.title) + '</b><span class="pill">' + esc(w.role) + "</span>";
-    a.addEventListener("click", function () { sfx("click"); openWork(i); });
+    a.addEventListener("click", function () { openWork(i); });
     set.appendChild(a);
   });
 
@@ -590,7 +597,7 @@
      DESKTOP, START MENU, TRAY
      ------------------------------------------------------------- */
   function deselect() { $$(".desk-icon.selected").forEach(function (n) { n.classList.remove("selected"); }); }
-  function launch(key) { if (FOLDERS[key]) sfx("click"); open(key); }
+  function launch(key) { open(key); }
   $$(".desk-icon").forEach(function (ic) {
     ic.addEventListener("click", function () { deselect(); ic.classList.add("selected"); if (coarse) launch(ic.dataset.open); });
     ic.addEventListener("dblclick", function () { launch(ic.dataset.open); });
@@ -616,7 +623,7 @@
   }).concat(
     [["Computer", "img/icons/computer.png", "computer"], ["Control Panel", "img/icons/computer.png", "computer"], ["Recycle Bin", "img/icons/recycle.png", "recycle"]]
       .map(function (x) { return { label: x[0], icon: x[1], run: function () { launch(x[2]); } }; }),
-    works.map(function (w, i) { return { label: w.title, icon: w.thumb, run: function () { sfx("click"); openWork(i); } }; }),
+    works.map(function (w, i) { return { label: w.title, icon: w.thumb, run: function () { openWork(i); } }; }),
     games.map(function (g, i) { return { label: g.name, icon: g.icon || "img/icons/app.png", run: function () { openGame(i); } }; })
   );
   var smList = $("#sm-list"), smResults = $("#sm-results"), smHits = [];
@@ -678,10 +685,238 @@
   balloonEl.addEventListener("click", function () { balloonEl.hidden = true; });
 
   /* -------------------------------------------------------------
+     ROBLOX — a games app that looks games up live.
+     data comes from roproxy.com (a public mirror of roblox's api; roblox's
+     own api doesn't allow other sites to read it). requests never carry
+     cookies and nothing here ever asks anyone to log in.
+     it's a desktop app (menu bar, toolbar, status bar), not a web page.
+     roblox forbids being shown inside other sites (frame-ancestors 'none'),
+     so "Play" asks first, then opens play.roblox.com in a game-sized popup
+     window, which uses whatever roblox account the visitor is signed into.
+     ------------------------------------------------------------- */
+  var RBX = window.ROBLOX || {}, rbxIcon = RBX.icon || "img/icons/app.png";
+  var rbxSession = window.crypto && crypto.randomUUID ? crypto.randomUUID() : String(Math.random()).slice(2);
+  var rbxThumbs = {}, rbxHist = [], rbxPos = -1, rbxEl = null, rbxSorts = null;
+  $$("[data-rbx-icon]").forEach(function (i) { i.src = rbxIcon; });
+
+  function rbxApi(sub, path) {
+    return fetch("https://" + sub + ".roproxy.com" + path, { credentials: "omit" })
+      .then(function (r) { if (!r.ok) throw new Error(r.status); return r.json(); });
+  }
+  function num(n) { return n == null ? "-" : Number(n).toLocaleString("en-US"); }
+  function day(d) { return d ? new Date(d).toLocaleDateString("en-US") : "-"; }
+  function bg(el, url) { el.style.backgroundImage = "url(" + JSON.stringify(url) + ")"; }
+
+  // wide thumbnails, one batched request per page, dropped into the grey tiles
+  function rbxFillThumbs(root) {
+    var want = [];
+    $$("[data-u]", root).forEach(function (t) { var u = t.dataset.u; if (rbxThumbs[u]) bg(t, rbxThumbs[u]); else if (want.indexOf(u) < 0) want.push(u); });
+    for (var i = 0; i < want.length; i += 50) {
+      rbxApi("thumbnails", "/v1/games/multiget/thumbnails?universeIds=" + want.slice(i, i + 50).join(",") + "&size=384x216&format=Png&countPerUniverse=1")
+        .then(function (d) {
+          d.data.forEach(function (x) { var t = x.thumbnails && x.thumbnails[0]; if (t && t.imageUrl) rbxThumbs[x.universeId] = t.imageUrl; });
+          $$("[data-u]", root).forEach(function (t) { if (rbxThumbs[t.dataset.u]) bg(t, rbxThumbs[t.dataset.u]); });
+        }).catch(function () {});
+    }
+  }
+
+  function fromList(x) { return { u: x.universeId, p: x.rootPlaceId, name: x.name, playing: x.playerCount, up: x.totalUpVotes || 0, down: x.totalDownVotes || 0, genre: x.genreL1 || x.genre }; }
+  function rbxCard(g) {
+    var votes = g.up + g.down;
+    return '<div class="rbx-card"><a class="rbx-thumb" data-place="' + g.p + '" data-u="' + g.u + '" title="' + esc(g.name) + '"></a>' +
+      '<a class="rbx-name" data-place="' + g.p + '">' + esc(g.name) + "</a>" +
+      '<span class="rbx-online">' + num(g.playing) + " players online</span>" +
+      (votes ? '<span class="rbx-rating">Rating: ' + Math.round(g.up / votes * 100) + "%</span>" : "") + "</div>";
+  }
+  function rbxMsg(html) { return '<div class="rbx-msg">' + html + "</div>"; }
+
+  // place ids (the number in a roblox.com/games/... url) -> full game info
+  function rbxPlaces(ids) {
+    return Promise.all(ids.map(function (id) {
+      return rbxApi("apis", "/universes/v1/places/" + id + "/universe").then(function (d) { return d.universeId; }).catch(function () { return null; });
+    })).then(function (us) {
+      us = us.filter(Boolean);
+      return us.length ? rbxApi("games", "/v1/games?universeIds=" + us.join(",")).then(function (d) { return d.data; }) : [];
+    });
+  }
+  function rbxLoadSorts() {
+    if (rbxSorts) return Promise.resolve(rbxSorts);
+    if (RBX.charts === false) return Promise.resolve(rbxSorts = []);
+    return rbxApi("apis", "/explore-api/v1/get-sorts?sessionId=" + rbxSession).then(function (d) {
+      return (rbxSorts = d.sorts.filter(function (s) { return s.contentType === "Games" && s.games && s.games.length; }));
+    });
+  }
+
+  // the left "browse" column, like the old Games page
+  // the left column of the old Games page: sorts, then genres for the current list
+  function rbxSide(v, genres) {
+    var link = function (attr, val, label, on) { return "<a " + attr + '="' + esc(val) + '"' + (on ? ' class="on"' : "") + ">" + esc(label) + "</a>"; };
+    var sorts = ((RBX.picks || []).length ? link("data-sort", "picks", "nyaku's picks", v.sort === "picks") : "") +
+      (rbxSorts || []).map(function (s) { return link("data-sort", s.sortId, s.sortDisplayName, v.sort === s.sortId); }).join("");
+    var gen = genres && genres.length > 1 ? '<div class="rbx-box"><div class="rbx-box-h">Genre</div><div class="rbx-sorts">' +
+      link("data-genre", "", "All Genres", !v.genre) + genres.map(function (g) { return link("data-genre", g, g, v.genre === g); }).join("") + "</div></div>" : "";
+    return '<aside class="rbx-side"><div class="rbx-box"><div class="rbx-box-h">Sort</div><div class="rbx-sorts">' + sorts + "</div></div>" + gen +
+      '<div class="rbx-box rbx-tip"><div class="rbx-box-h">Did you know?</div><p>No login needed here. When you press Play, Roblox uses whatever account you\'re already signed into in this browser.</p></div></aside>';
+  }
+
+  // 16 games a page with the old "Previous | Page x of y | Next" bar
+  var RBX_PER_PAGE = 16;
+  function rbxPaged(title, games, v) {
+    var pages = Math.max(1, Math.ceil(games.length / RBX_PER_PAGE)), page = Math.min(v.page || 1, pages);
+    v.page = page;
+    var bar = pages > 1 ? '<div class="rbx-pager">' +
+      (page > 1 ? '<a data-page="' + (page - 1) + '">&laquo; Previous</a>' : '<span>&laquo; Previous</span>') +
+      "<b>Page " + page + " of " + pages + "</b>" +
+      (page < pages ? '<a data-page="' + (page + 1) + '">Next &raquo;</a>' : "<span>Next &raquo;</span>") + "</div>" : "";
+    return '<div class="rbx-box"><div class="rbx-box-h">' + esc(title) + "</div>" + bar +
+      '<div class="rbx-grid">' + games.slice((page - 1) * RBX_PER_PAGE, page * RBX_PER_PAGE).map(rbxCard).join("") + "</div>" + bar + "</div>";
+  }
+
+  var rbxViews = {
+    games: function (body, v) {
+      return rbxLoadSorts().then(function (sorts) {
+        // opens on Top Trending; falls back to the first chart, then the picks
+        var trending = sorts.filter(function (s) { return s.sortId === "top-trending"; })[0] || sorts[0];
+        var sort = v.sort || (trending ? trending.sortId : "picks");
+        v.sort = sort;
+        var list = sort === "picks"
+          ? rbxPlaces(RBX.picks).then(function (d) {
+              return { title: "nyaku's picks", games: d.map(function (g) { return { u: g.id, p: g.rootPlaceId, name: g.name, playing: g.playing, up: 0, down: 0, genre: g.genre_l1 || g.genre }; }) };
+            })
+          : Promise.resolve(sorts.filter(function (s) { return s.sortId === sort; }).map(function (s) { return { title: s.sortDisplayName, games: s.games.map(fromList) }; })[0] || { title: "", games: [] });
+        return list.then(function (l) {
+          var genres = [];
+          l.games.forEach(function (g) { if (g.genre && genres.indexOf(g.genre) < 0) genres.push(g.genre); });
+          genres.sort();
+          var shown = v.genre ? l.games.filter(function (g) { return g.genre === v.genre; }) : l.games;
+          body.innerHTML = '<div class="rbx-cols">' + rbxSide(v, genres) + '<div class="rbx-main">' +
+            (shown.length ? rbxPaged(l.title + (v.genre ? " \u00b7 " + v.genre : ""), shown, v) : rbxMsg("nothing here yet. add place ids to ROBLOX.picks in js/content.js")) + "</div></div>";
+        });
+      });
+    },
+    search: function (body, v) {
+      return Promise.all([rbxLoadSorts(), rbxApi("apis", "/search-api/omni-search?searchQuery=" + encodeURIComponent(v.q) + "&sessionId=" + rbxSession + "&pageType=all")]).then(function (r) {
+        var games = [];
+        r[1].searchResults.forEach(function (g) { if (g.contentGroupType === "Game") games = games.concat(g.contents); });
+        body.innerHTML = '<div class="rbx-cols">' + rbxSide(v) + '<div class="rbx-main">' +
+          (games.length ? rbxPaged('Search results for "' + v.q + '"', games.map(fromList), v) : rbxMsg("No games matched &ldquo;" + esc(v.q) + "&rdquo;.")) + "</div></div>";
+      });
+    },
+    game: function (body, v) {
+      return rbxPlaces([v.place]).then(function (d) {
+        var g = d[0];
+        if (!g) { body.innerHTML = rbxMsg("This place doesn't exist or isn't public."); return; }
+        v.name = g.name;
+        body.innerHTML = '<h1 class="rbx-title">' + esc(g.name) + "</h1>" +
+          '<div class="rbx-place"><div class="rbx-place-l"><div class="rbx-shot" data-u="' + g.id + '"></div>' +
+          '<a class="rbx-play" data-play-place="' + g.rootPlaceId + '">Play</a>' +
+          '<div class="rbx-box"><div class="rbx-box-h">Description</div><p class="rbx-desc">' + esc(g.description || "No description.") + "</p></div></div>" +
+          '<div class="rbx-place-r"><div class="rbx-box"><div class="rbx-box-h">Creator</div><p class="rbx-creator">' + esc(g.creator && g.creator.name) + "</p></div>" +
+          '<div class="rbx-box"><div class="rbx-box-h">Statistics</div><dl class="rbx-statlist">' +
+          "<dt>Players online:</dt><dd class=\"rbx-online\">" + num(g.playing) + "</dd>" +
+          "<dt>Visited:</dt><dd>" + num(g.visits) + " times</dd>" +
+          "<dt>Favorited:</dt><dd>" + num(g.favoritedCount) + " times</dd>" +
+          "<dt>Max players:</dt><dd>" + num(g.maxPlayers) + "</dd>" +
+          "<dt>Genre:</dt><dd>" + esc(g.genre_l1 || g.genre || "-") + "</dd>" +
+          "<dt>Created:</dt><dd>" + day(g.created) + "</dd>" +
+          "<dt>Updated:</dt><dd>" + day(g.updated) + "</dd></dl></div></div></div>";
+        // the big shot wants a bigger thumbnail than the grid
+        rbxApi("thumbnails", "/v1/games/multiget/thumbnails?universeIds=" + g.id + "&size=768x432&format=Png&countPerUniverse=1").then(function (t) {
+          var th = t.data[0] && t.data[0].thumbnails[0];
+          if (th && th.imageUrl) { rbxThumbs[g.id] = th.imageUrl; bg($(".rbx-shot", body), th.imageUrl); }
+        }).catch(function () {});
+      });
+    }
+  };
+
+  function rbxStatus(text) { if (rbxEl) $(".rbx-status", rbxEl).textContent = text; }
+
+  function rbxGo(v, fromHistory) {
+    if (!rbxEl) return;
+    if (!fromHistory) { rbxHist = rbxHist.slice(0, rbxPos + 1).concat(v); rbxPos = rbxHist.length - 1; }
+    var body = $(".rbx-body", rbxEl);
+    $(".back", rbxEl).disabled = rbxPos <= 0;
+    $(".fwd", rbxEl).disabled = rbxPos >= rbxHist.length - 1;
+    body.innerHTML = rbxMsg('<span class="spinner animate"></span> Loading...');
+    $(".rbx-scroll", rbxEl).scrollTop = 0;
+    rbxStatus("Loading...");
+    rbxViews[v.type](body, v).then(function () {
+      rbxFillThumbs(body);
+      rbxStatus("Connected");
+    }).catch(function () {
+      body.innerHTML = rbxMsg('<b>Couldn\'t connect</b><p>roblox didn\'t answer. it might be down, or your connection is.</p><a class="rbx-btn" data-rv="retry">Try again</a>');
+      rbxStatus("Offline");
+    });
+  }
+
+  // a desktop app, not a web page: menu bar, toolbar, browse pane, status bar
+  function openRoblox() {
+    if (rbxEl && wins.rbxsite) return open("rbxsite");
+    rbxEl = spawn("rbxsite", "Roblox", rbxIcon,
+      '<div class="rbx-menu"><span><u>F</u>ile</span><span><u>V</u>iew</span><span><u>T</u>ools</span><span><u>H</u>elp</span></div>' +
+      '<div class="rbx-tools">' +
+      '<button class="round back" disabled aria-label="Back">&#8592;</button><button class="round fwd" disabled aria-label="Forward">&#8594;</button>' +
+      '<button class="rbx-tool" data-rv="refresh" title="Refresh">&#8635;</button><button class="rbx-tool" data-rv="games" title="Home">&#8962; Home</button>' +
+      '<a class="rbx-logo" data-rv="games">' + (RBX.logo ? '<img src="' + esc(RBX.logo) + '" alt="ROBLOX">' : "ROBLOX") + "</a>" +
+      '<form class="rbx-search searchbox"><input type="search" placeholder="Search games" aria-label="Search games"><button type="submit" aria-label="search"></button></form>' +
+      "</div>" +
+      '<div class="window-body rbx-app"><div class="rbx-scroll has-scrollbar"><div class="rbx"><div class="rbx-body"></div></div></div>' +
+      '<div class="rbx-join" hidden><div class="rbx-join-box"><b>Starting Roblox...</b><span class="rbx-join-name"></span><div role="progressbar" class="marquee"></div><small>the game opens in its own window</small></div></div></div>' +
+      '<div class="status-bar"><p class="status-bar-field rbx-status">Ready</p><p class="status-bar-field">no login needed</p><p class="status-bar-field">fan-made &middot; not affiliated with Roblox</p></div>',
+      { w: 1040, h: 760, bigIcon: rbxIcon, onclose: function () { rbxEl = null; rbxHist = []; rbxPos = -1; } });
+    if (!rbxEl) return;
+    $(".back", rbxEl).addEventListener("click", function () { if (rbxPos > 0) { rbxGo(rbxHist[--rbxPos], true); } });
+    $(".fwd", rbxEl).addEventListener("click", function () { if (rbxPos < rbxHist.length - 1) { rbxGo(rbxHist[++rbxPos], true); } });
+    $(".rbx-search", rbxEl).addEventListener("submit", function (e) {
+      e.preventDefault();
+      var q = $("input", this).value.trim();
+      if (q) rbxGo({ type: "search", q: q });
+    });
+    rbxEl.addEventListener("click", function (e) {
+      var place = e.target.closest("[data-place]"), sort = e.target.closest("[data-sort]"), nav = e.target.closest("[data-rv]"), play = e.target.closest("[data-play-place]");
+      var genre = e.target.closest("[data-genre]"), pg = e.target.closest("[data-page]"), cur = rbxHist[rbxPos];
+      if (genre && cur.type === "games") { rbxGo({ type: "games", sort: cur.sort, genre: genre.dataset.genre || "" }); }
+      else if (pg) { rbxGo(Object.assign({}, cur, { page: +pg.dataset.page })); }
+      else if (place) { rbxGo({ type: "game", place: place.dataset.place }); }
+      else if (sort) { rbxGo({ type: "games", sort: sort.dataset.sort }); }
+      else if (nav) { nav.dataset.rv === "retry" || nav.dataset.rv === "refresh" ? rbxGo(cur, true) : rbxGo({ type: "games" }); }
+      else if (play) rbxPlay(play.dataset.playPlace, $(".rbx-title", rbxEl).textContent);
+    });
+    rbxGo({ type: "games" });
+  }
+
+  // explicit permission first. roblox can't be shown inside another site, so it
+  // opens in a game-sized popup while the app shows its "starting" screen
+  function rbxPlay(place, name) {
+    msgbox("Roblox", '<img class="big" src="' + esc(rbxIcon) + '" alt="">',
+      "<p>Play <b>" + esc(name) + "</b>?</p><p>The game opens in its own window and uses whichever Roblox account you're already signed into in this browser (or asks you itself). nyakuverse never sees your account and never asks you to log in.</p>",
+      [{ label: "Play", fn: function () {
+        // some browsers report a 0 screen size; fall back to the browser window's size
+        var sw = screen.availWidth || outerWidth || 1320, sh = screen.availHeight || outerHeight || 800;
+        var w = Math.max(640, Math.min(1280, sw - 40)), h = Math.max(360, Math.min(720, sh - 80));
+        var x = (screen.availLeft || 0) + Math.max(0, Math.round((sw - w) / 2)), y = (screen.availTop || 0) + Math.max(0, Math.round((sh - h) / 2));
+        window.open("https://play.roblox.com/games/start?placeId=" + encodeURIComponent(place), "_blank",
+          "popup=yes,noopener,width=" + w + ",height=" + h + ",left=" + x + ",top=" + y);
+        rbxJoining(name);
+      } }, { label: "Cancel" }]);
+  }
+
+  // the app's own "starting" screen, purely for show
+  function rbxJoining(name) {
+    if (!rbxEl) return;
+    var j = $(".rbx-join", rbxEl);
+    $(".rbx-join-name", j).textContent = name;
+    j.hidden = false;
+    rbxStatus("Joining " + name + "...");
+    setTimeout(function () { if (rbxEl) { j.hidden = true; rbxStatus("Playing in another window"); } }, 3500);
+  }
+
+  /* -------------------------------------------------------------
      EASTER EGGS + POWER (opened like windows via data-open)
      ------------------------------------------------------------- */
   var pets = 0;
   var actions = {
+    roblox: function () { openRoblox(); },
     troll: function () {
       // user account control: dims the whole screen, taskbar included
       var dim = document.createElement("div");

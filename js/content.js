@@ -83,3 +83,20 @@ var GAMES = [
     url: "https://wosu.dino.icu/"
   },
 ];
+
+/* ---- roblox ----
+   the "Roblox" app on the desktop: a games site that looks games up live.
+     picks  : place ids shown at the top as "nyaku's picks". a place id is
+              the number in a game's link: roblox.com/games/1730877806/... -> 1730877806
+     charts : true = also show roblox's live charts (top trending, top playing...)
+     icon   : optional square icon for the app, "" = default app icon
+     logo   : optional image for the site's header logo (e.g. "img/roblox-logo.png"),
+              "" = plain "ROBLOX" text. keep it around 40-50px tall
+   clicking Play asks first, then opens play.roblox.com in a popup window,
+   which uses whatever roblox account the visitor is already signed into. */
+var ROBLOX = {
+  picks: [1730877806, 10449761463],
+  charts: true,
+  icon: "img/game-icons/roblox.ico",
+  logo: "img/Roblox_logo.webp"
+};

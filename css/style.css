@@ -93,7 +93,7 @@ img { -webkit-user-drag: none; }
   background: none; border: 1px solid transparent; border-radius: 3px; box-shadow: none;
   color: #fff; font: 9pt var(--ui); text-align: center; line-height: 1.2;
 }
-.desk-icon img { width: 48px; height: 48px; }
+.desk-icon img { width: 48px; height: 48px; object-fit: contain; }
 .desk-icon span { text-shadow: 0 0 3px #000, 0 1px 2px #000; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; word-break: break-word; }
 .desk-icon.shortcut span::before, .file.shortcut .ico::after {
   content: ""; position: absolute; width: 16px; height: 16px; background: url("../img/icons/shortcut-16.png");
@@ -119,7 +119,7 @@ img { -webkit-user-drag: none; }
 .win7 .window.glass:not(.active)::before { opacity: .35; }
 .win7 .window > .title-bar { flex: none; }
 .win7 .window .title-bar-text { display: flex; align-items: center; gap: 6px; min-height: 20px; }
-.win7 .window .title-bar-text img { width: 16px; height: 16px; }
+.win7 .window .title-bar-text img { width: 16px; height: 16px; object-fit: contain; }
 .win7 .window-body { flex: 1; min-height: 0; overflow: auto; }
 .win7 .window.max { left: 0 !important; top: 0 !important; width: 100% !important; height: 100% !important; border-radius: 0; }
 .win7 .window.max::before { border-radius: 0; }
@@ -152,7 +152,7 @@ body.dragging iframe { pointer-events: none; }
   background: linear-gradient(#fff, #f3f6fa); border: 1px solid #8e9fb8; border-radius: 2px; box-shadow: inset 0 1px rgba(0,0,0,.08);
   white-space: nowrap; overflow: hidden;
 }
-.crumb img { width: 16px; height: 16px; margin-right: 2px; }
+.crumb img { width: 16px; height: 16px; margin-right: 2px; object-fit: contain; }
 .crumb .sep { color: #555; font-size: 8px; padding: 0 3px; }
 .win7 .crumb a { padding: 1px 4px; border: 1px solid transparent; border-radius: 2px; color: #000; text-decoration: none; }
 .win7 .crumb a:hover { border-color: var(--hover-bd); background: var(--hover-bg); }
@@ -415,7 +415,7 @@ body.dragging iframe { pointer-events: none; }
 .game-body iframe { flex: 1; min-height: 0; width: 100%; border: 0; background: #000; }
 
 .win7 .msg-body { display: flex; align-items: flex-start; gap: 14px; padding: 18px 18px 14px; background: #fff; }
-.msg-body img.big { width: 48px; height: 48px; flex: none; }
+.msg-body img.big { width: 48px; height: 48px; flex: none; object-fit: contain; }
 .msg-body img.bear { width: 90px; height: auto; flex: none; animation: wob 2s ease-in-out infinite; }
 @keyframes wob { 0%, 100% { transform: rotate(-5deg); } 50% { transform: rotate(5deg); } }
 .msg-body p { margin: 0 0 6px; }
@@ -588,6 +588,63 @@ ul.two-col li { break-inside: avoid; }
 .permalink .embed { display: block; width: 100%; aspect-ratio: 16 / 9; border: 0; border-radius: 6px; margin: 4px 0 12px; }
 .permalink .actions { display: flex; gap: 8px; }
 .permalink .actions .gel { display: inline-block; padding: 5px 18px; margin: 0; }
+
+/* =====================================================================
+   ROBLOX — a games app (live data, original styling)
+   ===================================================================== */
+.rbx { min-height: 100%; background: #fff; font: 9pt Verdana, Arial, Helvetica, sans-serif; color: #222; user-select: text; }
+.win7 .rbx a { cursor: pointer; text-decoration: none; color: #0052a4; }
+.win7 .rbx a:hover { text-decoration: underline; }
+/* the app shell: menu bar, toolbar, scrolling content, status bar */
+.rbx-menu { flex: none; display: flex; padding: 0 4px; }
+.rbx-menu span { padding: 2px 8px; color: #000; border-radius: 2px; }
+.rbx-menu span:hover { background: rgba(255,255,255,.55); box-shadow: inset 0 0 0 1px rgba(60,127,177,.5); }
+.rbx-tools { flex: none; display: flex; align-items: center; gap: 6px; height: 38px; padding: 0 8px; background: linear-gradient(#f5faff, #e6eef9 50%, #dce7f5 51%, #e3ecf8); border: 1px solid #a0afc3; border-width: 1px 0; }
+#scale-wrap .rbx-tool { height: 26px; min-width: 0; min-height: 0; padding: 0 10px; background: none; border: 1px solid transparent; border-radius: 3px; box-shadow: none; color: #1e395b; font: 9pt var(--ui); }
+#scale-wrap .rbx-tool:hover { border-color: #7da2ce; background: linear-gradient(#f8fbfe, #e3eefb 50%, #d4e5f9 51%, #e1ecfa); }
+.win7 .rbx-tools .rbx-logo { margin: 0 auto; display: flex; align-items: center; height: 32px; font: italic 900 22px "Arial Black", Arial, sans-serif; letter-spacing: -1px; color: #c4161c; text-decoration: none; cursor: pointer; text-shadow: 1px 1px 0 #fff; }
+.rbx-logo img { display: block; max-height: 32px; width: auto; }
+.rbx-tools .searchbox { width: 240px; }
+.win7 .rbx-tools .searchbox input { width: 100%; }
+.win7 .rbx-app { position: relative; display: flex; flex-direction: column; padding: 0; overflow: hidden; background: #fff; }
+.rbx-scroll { flex: 1; min-height: 0; overflow: auto; }
+.rbx-join { position: absolute; inset: 0; z-index: 5; display: grid; place-items: center; background: rgba(240,244,248,.92); }
+.rbx-join-box { display: flex; flex-direction: column; align-items: center; gap: 8px; width: 340px; padding: 22px; background: #fff; border: 1px solid #b9c0c8; border-radius: 4px; box-shadow: 0 4px 16px rgba(0,0,0,.2); }
+.rbx-join-box b { font-size: 12pt; }
+.rbx-join-box span { color: #555; text-align: center; word-break: break-word; }
+.rbx-join-box [role=progressbar] { width: 100%; }
+.rbx-join-box small { color: #888; }
+.rbx-pager { display: flex; align-items: center; justify-content: center; gap: 14px; padding: 6px; font-size: 8.5pt; color: #999; }
+.rbx-pager b { color: #222; font-weight: normal; }
+.rbx-body { max-width: 1000px; margin: 0 auto; padding: 12px 14px 18px; }
+.rbx-cols { display: grid; grid-template-columns: 176px 1fr; gap: 12px; align-items: start; }
+.rbx-box { margin-bottom: 12px; border: 1px solid #c9cfd6; background: #fff; }
+.rbx-box-h { padding: 4px 8px; font-weight: bold; color: #222; background: linear-gradient(#f7f8f9, #e1e5e9); border-bottom: 1px solid #c9cfd6; }
+.rbx-sorts { display: flex; flex-direction: column; padding: 4px 0; }
+.win7 .rbx .rbx-sorts a { padding: 3px 10px; }
+.win7 .rbx .rbx-sorts a.on { font-weight: bold; color: #222; background: #eef3f8; }
+.rbx-tip p { margin: 0; padding: 6px 8px; font-size: 8pt; color: #555; }
+.rbx-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 14px 12px; padding: 10px; }
+.rbx-card { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.win7 .rbx .rbx-thumb { display: block; aspect-ratio: 16 / 9; margin-bottom: 3px; background: #d7dbe0 center / cover no-repeat; border: 1px solid #b9c0c8; }
+.win7 .rbx .rbx-thumb:hover { border-color: #0052a4; }
+.win7 .rbx .rbx-name { font-weight: bold; line-height: 1.3; max-height: 2.6em; overflow: hidden; word-break: break-word; }
+.rbx-online { color: #2f8a00; font-size: 8pt; }
+.rbx-rating { color: #777; font-size: 8pt; }
+.rbx-title { margin: 4px 0 10px; font: bold 16pt Verdana, Arial, sans-serif; color: #222; word-break: break-word; }
+.rbx-place { display: grid; grid-template-columns: 1fr 280px; gap: 12px; align-items: start; }
+.rbx-shot { aspect-ratio: 16 / 9; margin-bottom: 10px; background: #d7dbe0 center / cover no-repeat; border: 1px solid #b9c0c8; }
+.win7 .rbx .rbx-play { display: block; margin-bottom: 12px; padding: 10px; border-radius: 4px; text-align: center; font: bold 18pt Verdana, Arial, sans-serif; color: #fff; text-shadow: 0 1px 1px #1f6a00; background: linear-gradient(#7fdc3f, #4bb51b 52%, #3a9a10); border: 1px solid #2c7a08; box-shadow: inset 0 1px rgba(255,255,255,.5), 0 2px 3px rgba(0,0,0,.2); }
+.win7 .rbx .rbx-play:hover { text-decoration: none; filter: brightness(1.07); }
+.rbx-desc { margin: 0; padding: 8px 10px; white-space: pre-line; word-break: break-word; max-height: 320px; overflow: auto; }
+.rbx-creator { margin: 0; padding: 8px 10px; font-weight: bold; }
+.rbx-statlist { display: grid; grid-template-columns: auto 1fr; gap: 4px 8px; margin: 0; padding: 8px 10px; }
+.rbx-statlist dt { color: #666; }
+.rbx-statlist dd { margin: 0; }
+.rbx-msg { display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 60px 20px; color: #555; text-align: center; }
+.rbx-msg b { font-size: 12pt; color: #1e3287; }
+.rbx-msg p { margin: 0; }
+.win7 .rbx .rbx-btn { padding: 4px 14px; border: 1px solid #8e8f8f; border-radius: 3px; background: linear-gradient(#f2f2f2, #dcdcdc); color: #222; }
 
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation: none !important; transition: none !important; }
