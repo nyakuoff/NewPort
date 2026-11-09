@@ -151,6 +151,18 @@
     if (k && e.target.dataset && e.target.dataset.p === "wave" && a.duration) { e.preventDefault(); seekTo(Math.max(0, Math.min(a.duration, a.currentTime + k))); }
   });
 
+  // used by the terminal page (js/terminal.js, js/ocarina.js)
+  window.PlayerAPI = {
+    list: () => tracks.map(t => ({ file: t.file, title: t.title, artist: t.artist })),
+    index: () => idx,
+    playing: () => !a.paused,
+    play: i => { if (i === idx && a.currentTime > 0 && a.paused) play(); else load(i, true); },
+    resume: play,
+    pause: () => a.pause(),
+    next: () => next(),
+    prev: () => load(idx - 1, true)
+  };
+
   a.onplay = function () { started = true; sync(); };
   a.onpause = a.onvolumechange = sync;
   a.ontimeupdate = a.onloadedmetadata = a.ondurationchange = paint;

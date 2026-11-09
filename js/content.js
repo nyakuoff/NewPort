@@ -106,6 +106,20 @@ var SITE = {
     status: { title: "kitty", prompt: "status", lines: ["usually coding, listening to music, or working on something new."] }
   },
 
+  /* ---------------- terminal page ----------------
+     the fake shell. the output of its commands comes from the fields above:
+       quote          -> home.terminal       fastfetch -> about.setup
+       ./interests.sh -> tags                status    -> elsewhere.status
+     files in ~ (about.txt, links.txt, projects/*.md, music/) are built from your work / about / links too. */
+  terminal: {
+    prompt: "terminal",
+    title: "poke around.",
+    lead: "a tiny fake shell. type help to see what it can do.",
+    user: "nyaku",
+    host: "cachyos",
+    welcome: "welcome to my terminal. type help to see what you can do."
+  },
+
   /* footer: label + url, in order */
   footer: [
     ["github", LINKS.github],

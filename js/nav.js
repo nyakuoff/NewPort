@@ -9,6 +9,7 @@
       if (push) history.pushState(null, "", url);
       renderPage();
       PlayerSync();
+      TermMount();
       scrollTo(0, 0);
     }).catch(function () { location.href = url; });
   }

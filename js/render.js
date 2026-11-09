@@ -53,6 +53,8 @@ window.renderPage = (function () {
     }
   };
 
+  window.UI = { esc: esc, bar: bar }; // used by js/terminal.js
+
   // fills every [data-t] / [data-render] in the page (js/nav.js calls this again after each page swap)
   return function () {
     document.querySelectorAll("[data-t]").forEach(function (el) { el.textContent = get(el.dataset.t); });

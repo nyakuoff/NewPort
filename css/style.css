@@ -214,3 +214,66 @@ h1 { font-size: clamp(40px, 5.2vw, 64px); font-weight: 800; letter-spacing: -.04
 .mini-line::after { content: ""; display: block; height: 100%; width: var(--p, 0%); background: var(--lime); }
 body.has-mini { padding-bottom: 90px; }
 @keyframes mini-in { from { opacity: 0; transform: translateY(12px); } }
+
+/* ---------- terminal page ---------- */
+.shell { margin-top: 36px; }
+.shell:focus-within { border-color: color-mix(in srgb, var(--lime) 55%, #5a5a5c); }
+.sh { height: min(520px, 62vh); overflow-y: auto; cursor: text; font-size: 14px; padding: 14px 18px; }
+.sh .ln, .sh-line { white-space: pre-wrap; overflow-wrap: anywhere; line-height: 1.6; }
+.sh .ln:empty { min-height: 1.6em; }
+.sh-line { display: flex; gap: 1ch; align-items: baseline; }
+.sh .ps b { color: var(--lime); }
+.sh .ps i { color: #7aa2f7; font-style: normal; }
+.sh-in { flex: 1; min-width: 0; padding: 0; background: none; border: 0; outline: 0; color: var(--fg); font: inherit; caret-color: var(--lime); }
+.sh .ls { display: flex; flex-wrap: wrap; gap: 0 2ch; }
+.sh .d { color: #7aa2f7; font-weight: 700; }
+.sh .x { color: var(--lime); font-weight: 700; }
+.sh .dim { color: var(--muted); }
+.sh .help { display: grid; grid-template-columns: max-content 1fr; gap: 0 3ch; }
+.sh .help b { color: var(--lime); }
+.sh .help span { color: var(--muted); }
+.sh .ff { display: flex; flex-wrap: wrap; gap: 0 3ch; }
+.sh .ff pre { margin: 0; font: inherit; line-height: 1.3; color: var(--lime); }
+.sh .k { color: var(--lime); font-weight: 700; }
+.sh .pal span { display: inline-block; width: 3ch; height: 1.1em; vertical-align: middle; }
+
+/* ---------- ./ocarina.sh (full-screen app inside the shell window) ---------- */
+.sh.app { height: auto; overflow: visible; cursor: default; container-type: inline-size; }
+.sh.app .sh-out, .sh.app .sh-line { display: none; }
+.tui { display: grid; grid-template-columns: max-content minmax(260px, 1fr); gap: 20px 36px; line-height: 1.6; }
+.tui .dim { color: var(--muted); }
+.tui b { font-weight: 700; }
+.tui-hd { display: flex; justify-content: space-between; gap: 2ch; padding-bottom: 6px; margin-bottom: 8px; border-bottom: 1px solid #3a3a3c; }
+.tui-hd b { color: var(--lime); letter-spacing: .08em; }
+.tui-hd span { color: var(--muted); }
+.tui-art { margin: 0; font: inherit; font-size: 8px; line-height: 1.2; white-space: pre; overflow: hidden; transition: filter .15s; }
+.tui.playing .tui-art { filter: brightness(1.3) saturate(1.25); }
+.tui-keys { display: flex; flex-wrap: wrap; gap: 8px 2ch; margin-top: 14px; }
+.key { display: inline-flex; gap: 1ch; padding: 1px 1.2ch; border: 1px solid #5a5a5c; border-radius: 4px; cursor: pointer; user-select: none; touch-action: none; transition: background .08s, color .08s; }
+.key b { font-weight: 800; }
+.key i { font-style: normal; color: var(--muted); }
+.key.on { background: var(--lime); border-color: var(--lime); color: #0a0a0b; }
+.key.on i { color: #0a0a0b; }
+.tui-line { display: flex; gap: 2ch; align-items: baseline; margin-top: 10px; min-height: 1.6em; }
+.pn { margin-right: 1ch; color: var(--fg); }
+.tui-prac { margin-top: 18px; padding-top: 14px; border-top: 1px solid #3a3a3c; }
+.tui-name { font-size: 20px; font-weight: 800; margin-top: 2px; }
+.tui-seq { margin: 10px 0 6px; font-size: 18px; }
+.sn { display: inline-block; min-width: 2ch; margin-right: 1.4ch; text-align: center; color: var(--muted); }
+.sn.played { color: var(--lime); }
+.sn.next { color: var(--fg); border-bottom: 2px solid var(--lime); }
+.tui-status { min-height: 1.6em; }
+.tui-acts { display: flex; flex-wrap: wrap; gap: 0 3ch; margin-top: 8px; }
+.tui button { padding: 0; font: inherit; color: var(--lime); cursor: pointer; }
+.tui button:hover { text-decoration: underline; }
+.tui-songs { margin-bottom: 14px; }
+.song { display: grid; grid-template-columns: 2ch 3ch 1fr auto 3ch; gap: 0 1ch; padding: 1px 0; cursor: pointer; }
+.song:hover { color: var(--lime); }
+.song.sel { color: var(--lime); font-weight: 700; }
+.song .x { text-align: right; }
+.tui-foot { grid-column: 1 / -1; padding-top: 10px; border-top: 1px solid #3a3a3c; }
+.tui-foot span { color: var(--fg); }
+@container (max-width: 1000px) {
+  .tui { grid-template-columns: minmax(0, 1fr); }
+  .tui-art { font-size: max(4px, min(8px, calc(100cqw / 58))); }
+}

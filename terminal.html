@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>nyaku. — terminal</title>
+  <meta name="description" content="a tiny fake terminal. poke around.">
+  <meta name="theme-color" content="#0a0a0b">
+  <link rel="icon" href="assets/favicon.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700;800&display=swap">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<div class="wrap">
+
+  <header class="top">
+    <a class="logo" href="index.html" data-render="logo"></a>
+    <span class="status"><i class="dot"></i><span data-t="status"></span></span>
+    <nav>
+      <a href="index.html">work</a>
+      <a href="about.html">about</a>
+      <a href="elsewhere.html">elsewhere</a>
+      <a href="terminal.html" aria-current="page">terminal</a>
+    </nav>
+  </header>
+
+  <main>
+    <section class="hero bordered">
+      <div>
+        <p class="prompt" data-t="terminal.prompt"></p>
+        <h1><span data-t="terminal.title"></span><span class="cur"></span></h1>
+        <p class="lead" data-t="terminal.lead"></p>
+      </div>
+      <svg class="art catpc" aria-hidden="true"><use href="assets/icons.svg#pc"/></svg>
+    </section>
+
+    <div class="term shell" data-shell></div>
+  </main>
+
+  <footer data-render="footer"></footer>
+
+</div>
+<script src="js/content.js"></script>
+<script src="js/render.js"></script>
+<script src="js/player.js"></script>
+<script src="js/terminal.js"></script>
+<script src="js/nav.js"></script>
+</body>
+</html>
