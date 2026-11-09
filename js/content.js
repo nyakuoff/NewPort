@@ -17,10 +17,8 @@ var LINKS = {
   github:  "https://github.com/nyakuoff",
   discord: "https://discord.gg/ey5e5aWcVW",
   email:   "mailto:nyakusfx@gmail.com",
-  youtube: "#",   // TODO: put your channel url
-  roblox:  "#",   // TODO: put your profile url
-  x:       "#",   // TODO: put your profile url
-  lastfm:  "#"    // TODO: put your profile url
+  roblox:  "https://www.roblox.com/users/2452944056/profile",
+  x:       "https://x.com/realnyaku"
 };
 
 var SITE = {
@@ -29,7 +27,7 @@ var SITE = {
 
   /* interests tags: shown on the work page and the about page.
      the green "+ more" tag is added for you; set moreTag to "" to hide it. */
-  tags: ["gamedev", "roblox", "linux", "self-hosting", "sound design", "ai", "tech"],
+  tags: ["gamedev", "roblox", "linux", "self-hosting", "sound design", "ai", "tech", "cinema"],
   moreTag: "+ more",
 
   /* the music player on the work page.
@@ -58,10 +56,10 @@ var SITE = {
     ],
 
     nowPrompt: "currently",
-    now: "building useful software and learning as i go.",
+    now: "probably building something i'll never finish.",
 
     /* the little terminal window in the sidebar */
-    terminal: { title: "terminal", prompt: "currently", lines: ["coding, designing, listening to music...", "and probably debugging something."] },
+    terminal: { title: "kitty", prompt: "quote - Tyrell Wellick", lines: ["Life is so much easier when you’re numb."] },
     interestsPrompt: "interests"
   },
 
@@ -76,21 +74,23 @@ var SITE = {
     info: [
       { icon: "pin",      label: "location",  text: "Morocco." },
       { icon: "gamepad",  label: "focus",     text: "game dev — building games, tools, and playful systems." },
-      { icon: "cube",     label: "tools",     text: "Lua, C/C++, Python, Godot, and a mix of creative tools." },
+      { icon: "cube",     label: "tools",     text: "Lua, C/C++, Rust, and a mix of creative tools." },
       { icon: "layers",   label: "systems",   text: "engineering comfortable, simple, and reusable systems." },
       { icon: "sparkle",  label: "interests", text: "music, audio, sound design, emulation, and retro tech." }
     ],
 
-    setup: { title: "setup", prompt: "my setup", lines: [
-      "os: Linux (Arch)",
-      "editor: Neovim",
-      "tools: Godot, Blender, FL Studio",
-      "audio: headphones, a small MIDI keyboard"
+    setup: { title: "fastfetch", prompt: "my setup", lines: [
+      "os: CachyOS x86_64",
+      "desktop: KDE Plasma",
+      "wm: Wayland",
+      "cpu: 12th Gen Intel(R) Core(TM) i7-12700K",
+      "gpu: AMD Radeon RX 7800 XT",
+      "memory: 32GB"
     ] },
     /* the interests window shows the same tags as above */
-    interestsWindow: { title: "interests.exe", prompt: "interests" }
+    interestsWindow: { title: "interests.sh", prompt: "interests" }
   },
-
+  
   /* ---------------- elsewhere page ---------------- */
   elsewhere: {
     prompt: "elsewhere",
@@ -100,12 +100,10 @@ var SITE = {
     links: [
       { icon: "github",    title: "GitHub",  desc: "code, projects, and other things i build.",        href: LINKS.github },
       { icon: "discord",   title: "Discord", desc: "hang out, chat, or follow small updates.",         href: LINKS.discord },
-      { icon: "youtube",   title: "YouTube", desc: "videos, devlogs, and random creations.",           href: LINKS.youtube },
       { icon: "roblox",    title: "Roblox",  desc: "my Roblox profile, games, and experiments.",       href: LINKS.roblox },
-      { icon: "x",         title: "X",       desc: "quick updates, progress, and random thoughts.",    href: LINKS.x },
-      { icon: "lastdotfm", title: "Last.fm", desc: "what i’m listening to, scrobbles, and music stats.", href: LINKS.lastfm }
+      { icon: "x",         title: "X",       desc: "quick updates, progress, and random thoughts.",    href: LINKS.x }
     ],
-    status: { title: "terminal", prompt: "status", lines: ["usually coding, listening to music, or working on something new."] }
+    status: { title: "kitty", prompt: "status", lines: ["usually coding, listening to music, or working on something new."] }
   },
 
   /* footer: label + url, in order */

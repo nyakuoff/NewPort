@@ -1,11 +1,27 @@
-// playlist player. songs = assets/medias/songs.json (built by songs.py); state lives on the <audio> element.
+// playlist player that survives page changes (js/nav.js swaps pages without reloading).
+// the <audio> lives here, outside the page content. every [data-p="..."] element on the current
+// page (the full player on work, a mini player everywhere else) just mirrors this state.
 (function () {
-  var $ = function (id) { return document.getElementById(id); };
-  var a = $("p-audio"), bar = $("p-bar"), wave = $("p-wave"), vol = $("p-vol"), cover = document.querySelector(".cover");
   var M = SITE.music;
-  var tracks = [], idx = 0, shuffle = false, drag = false;
-  var fmt = function (s) { s = Math.floor(s || 0); return Math.floor(s / 60) + ":" + String(s % 60).padStart(2, "0"); };
+  var a = new Audio(), tracks = [], idx = 0, shuffle = false, dragP = null, started = false, dismissed = false;
+  a.preload = "metadata";
+  a.volume = M.volume / 100;
+
+  var each = function (k, f) { document.querySelectorAll('[data-p="' + k + '"]').forEach(f); };
+  var txt = function (k, v) { each(k, function (e) { e.textContent = v; }); };
   var pct = function (el, v) { el.style.setProperty("--p", v + "%"); };
+  var icon = function (el, n) { el.querySelector("use").setAttribute("href", "assets/icons.svg#" + n); };
+  var fmt = function (s) { s = Math.floor(s || 0); return Math.floor(s / 60) + ":" + String(s % 60).padStart(2, "0"); };
+  var btn = function (k, label, ico, cls) {
+    return '<button class="' + (cls || "ic") + '" data-p="' + k + '" aria-label="' + label + '"><svg class="i"><use href="assets/icons.svg#' + ico + '"/></svg></button>';
+  };
+
+  var mini = document.createElement("div");
+  mini.className = "mini"; mini.hidden = true;
+  mini.innerHTML = '<div class="cover" data-p="cover" aria-hidden="true"></div><div class="info"><b data-p="title"></b><small data-p="artist"></small></div>' +
+    btn("prev", "previous", "prev") + btn("play", "play", "play", "play") + btn("next", "next", "next") + btn("close", "close player", "close", "ic close") +
+    '<div class="mini-line" data-p="line"></div>';
+  document.body.appendChild(mini);
 
   // "Title - Artist.mp3" -> {title, artist}, lowercased to match the site
   function parse(file) {
@@ -14,28 +30,52 @@
   }
 
   // fake waveform: seeded noise under a slow envelope, different per song. ponytail: not real peaks.
-  var N = 56, bars = [];
-  for (var i = 0; i < N; i++) bars.push(wave.appendChild(document.createElement("i")));
-  function shape(name) {
+  function shape(wave, name) {
+    var n = Math.max(24, Math.floor(wave.clientWidth / 5)); // as many bars as fit (~3px bar + 2px gap)
+    while (wave.children.length < n) wave.appendChild(document.createElement("i"));
+    while (wave.children.length > n) wave.lastChild.remove();
     var seed = 7;
     for (var i = 0; i < name.length; i++) seed = (seed * 31 + name.charCodeAt(i)) % 2147483647;
     var phase = seed % 7;
-    bars.forEach(function (b, i) {
+    [].forEach.call(wave.children, function (b, i) {
       seed = (seed * 16807) % 2147483647;
       b.style.height = 12 + (seed % 100) / 100 * 60 * (0.55 + 0.45 * Math.sin(i / 5.5 + phase) ** 2) + "%";
     });
   }
 
+  // time-based bits, run on every timeupdate
   function paint() {
-    var p = a.duration ? a.currentTime / a.duration : 0;
-    if (!drag) bar.value = p * 1000; // don't fight the thumb while it's being dragged
-    pct(bar, bar.value / 10);
-    $("p-cur").textContent = fmt(a.currentTime);
-    $("p-dur").textContent = fmt(a.duration);
-    bars.forEach(function (b, i) { b.classList.toggle("on", i / N < p); });
+    var p = dragP !== null ? dragP : a.duration ? a.currentTime / a.duration : 0; // while scrubbing, show where the finger is
+    each("line", function (e) { pct(e, p * 100); });
+    txt("cur", fmt(a.currentTime));
+    txt("dur", fmt(a.duration));
+    each("wave", function (w) {
+      w.setAttribute("aria-valuenow", Math.round(p * 100));
+      [].forEach.call(w.children, function (b, i) { b.classList.toggle("on", i / w.children.length < p); });
+    });
   }
-  function toggle(btn) { btn.setAttribute("aria-pressed", btn.getAttribute("aria-pressed") !== "true"); return btn; }
-  function play() { var p = a.play(); if (p) p.catch(function () {}); }
+
+  // everything else; call after any state change or page swap
+  function sync() {
+    var t = tracks[idx] || { title: "no songs", artist: "", file: "" };
+    mini.hidden = !!document.querySelector(".player") || !started || dismissed; // (before the bars are sized, hidden things have no width) the full player replaces the mini one
+    document.body.classList.toggle("has-mini", !mini.hidden);
+    txt("title", t.title);
+    txt("artist", t.artist);
+    each("wave", function (w) { shape(w, t.file); });
+    each("cover", function (c) { c.style.background = t.url ? "url(" + t.url + ") center / cover" : ""; });
+    each("play", function (b) { icon(b, a.paused ? "play" : "pause"); b.setAttribute("aria-label", a.paused ? "play" : "pause"); });
+    each("shuffle", function (b) { b.setAttribute("aria-pressed", shuffle); });
+    each("repeat", function (b) { b.setAttribute("aria-pressed", a.loop); });
+    var v = a.muted ? 0 : a.volume * 100;
+    each("vol", function (e) { e.value = v; pct(e, v); });
+    txt("volnum", Math.round(v) + "%");
+    each("mute", function (b) { icon(b, v ? "volume" : "mute"); });
+    paint();
+  }
+  window.PlayerSync = sync;
+
+  function play() { dismissed = false; var p = a.play(); if (p) p.catch(function () {}); }
 
   // cover = first itunes hit for "title artist", cached per song; the gradient stays if there's none
   function art(t) {
@@ -48,21 +88,17 @@
   var loading, want;
   function load(i, autoplay) {
     idx = (i + tracks.length) % tracks.length;
-    var t = tracks[idx], mine = idx;
+    var t = tracks[idx];
     loading = null;
     a.src = M.folder + encodeURIComponent(t.file);
-    $("p-title").textContent = t.title;
-    $("p-artist").textContent = t.artist;
-    shape(t.file);
-    cover.style.background = "";
     art(t).then(function (u) {
-      if (!u) return;
+      if (!u || t.url) return;
       var img = new Image();
-      img.onload = function () { if (mine === idx) cover.style.background = "url(" + u + ") center / cover"; };
+      img.onload = function () { t.url = u; if (tracks[idx] === t) sync(); };
       img.src = u;
     });
-    paint();
     if (autoplay) play();
+    sync();
   }
   function next() { load(shuffle && tracks.length > 1 ? idx + 1 + Math.floor(Math.random() * (tracks.length - 1)) : idx + 1, true); }
 
@@ -80,39 +116,51 @@
     }, function () { loading = null; });
   }
 
-  // volume
-  function paintVol() {
-    var v = a.muted ? 0 : a.volume * 100;
-    vol.value = v; pct(vol, v);
-    $("p-vol-n").textContent = Math.round(v) + "%";
-    $("p-mute").firstChild.firstChild.setAttribute("href", "assets/icons.svg#" + (v ? "volume" : "mute"));
-  }
-  a.volume = M.volume / 100;
-  a.onvolumechange = paintVol;
-  vol.oninput = function () { a.muted = false; a.volume = vol.value / 100; };
-  $("p-mute").onclick = function () { a.muted = !a.muted; };
-  paintVol();
-
-  $("p-play").onclick = function () { a.paused ? play() : a.pause(); };
-  a.onplay = a.onpause = function () {
-    var p = !a.paused;
-    $("p-play").setAttribute("aria-label", p ? "pause" : "play");
-    $("p-play").firstChild.firstChild.setAttribute("href", "assets/icons.svg#" + (p ? "pause" : "play"));
+  var act = {
+    play: function () { a.paused ? play() : a.pause(); },
+    prev: function () { a.currentTime > 3 ? seekTo(0) : load(idx - 1, true); },
+    next: next,
+    shuffle: function () { shuffle = !shuffle; sync(); },
+    repeat: function () { a.loop = !a.loop; sync(); },
+    mute: function () { a.muted = !a.muted; },
+    close: function () { dismissed = true; a.pause(); sync(); }
   };
+  // delegated, so it keeps working after every page swap
+  document.addEventListener("click", function (e) {
+    var b = e.target.closest("button[data-p]");
+    if (b && act[b.dataset.p]) act[b.dataset.p]();
+  });
+  document.addEventListener("input", function (e) {
+    if (e.target.dataset && e.target.dataset.p === "vol") { a.muted = false; a.volume = e.target.value / 100; }
+  });
+
+  // the waveform is the seek bar: click or drag on it; arrow keys when focused
+  var scrub;
+  function at(e) { var r = scrub.getBoundingClientRect(); return Math.min(1, Math.max(0, (e.clientX - r.left) / r.width)); }
+  function scrubTo(e) { dragP = at(e); if (a.duration) seekTo(dragP * a.duration); paint(); }
+  document.addEventListener("pointerdown", function (e) {
+    scrub = e.target.closest('[data-p="wave"]');
+    if (!scrub) return;
+    scrub.setPointerCapture(e.pointerId);
+    scrubTo(e);
+  });
+  document.addEventListener("pointermove", function (e) { if (dragP !== null) scrubTo(e); });
+  addEventListener("pointerup", function () { dragP = null; scrub = null; paint(); });
+  document.addEventListener("keydown", function (e) {
+    var k = e.key === "ArrowRight" ? 5 : e.key === "ArrowLeft" ? -5 : 0;
+    if (k && e.target.dataset && e.target.dataset.p === "wave" && a.duration) { e.preventDefault(); seekTo(Math.max(0, Math.min(a.duration, a.currentTime + k))); }
+  });
+
+  a.onplay = function () { started = true; sync(); };
+  a.onpause = a.onvolumechange = sync;
   a.ontimeupdate = a.onloadedmetadata = a.ondurationchange = paint;
   a.onended = next; // with repeat on, <audio loop> never ends, so this only fires when repeat is off
-  bar.onpointerdown = function () { drag = true; };
-  addEventListener("pointerup", function () { drag = false; paint(); });
-  bar.oninput = function () { pct(bar, bar.value / 10); if (a.duration) seekTo(bar.value / 1000 * a.duration); };
-  $("p-prev").onclick = function () { a.currentTime > 3 ? seekTo(0) : load(idx - 1, true); };
-  $("p-next").onclick = next;
-  $("p-repeat").onclick = function () { a.loop = toggle(this).getAttribute("aria-pressed") === "true"; };
-  $("p-like").onclick = function () { toggle(this); };
-  $("p-shuffle").onclick = function () { shuffle = toggle(this).getAttribute("aria-pressed") === "true"; };
 
+  addEventListener("resize", sync); // bar count depends on the waveform width
+  sync();
   fetch(M.folder + "songs.json").then(function (r) { return r.json(); }).then(function (list) {
     tracks = list.map(parse);
     if (!tracks.length) throw 0;
-    load(0, false);
-  }).catch(function () { $("p-title").textContent = "no songs"; });
+    load(Math.floor(Math.random() * tracks.length), false); // random song each visit
+  }).catch(function () {});
 })();

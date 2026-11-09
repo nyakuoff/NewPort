@@ -1,5 +1,5 @@
 // fills the pages from SITE (js/content.js). html only holds layout + [data-t] / [data-render] hooks.
-(function () {
+window.renderPage = (function () {
   var esc = function (s) {
     return String(s == null ? "" : s).replace(/[&<>"']/g, function (c) {
       return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c];
@@ -17,7 +17,7 @@
       return t === null ? '<li class="more">' + esc(SITE.moreTag) + "</li>" : "<li>" + esc(t) + "</li>";
     }).join("");
   };
-  var bar = function (t) { return '<div class="term-bar"><i></i><i></i><i></i><span>' + esc(t.title) + "</span></div>"; };
+  var bar = function (t) { return '<div class="term-bar"><span>' + esc(t.title) + '</span><div class="wm" aria-hidden="true"><i class="min"></i><i class="max"></i><i class="cls"></i></div></div>'; };
 
   var R = {
     logo: function () { return esc(SITE.name) + "<b>.</b>"; },
@@ -53,6 +53,10 @@
     }
   };
 
-  document.querySelectorAll("[data-t]").forEach(function (el) { el.textContent = get(el.dataset.t); });
-  document.querySelectorAll("[data-render]").forEach(function (el) { el.innerHTML = R[el.dataset.render](el); });
+  // fills every [data-t] / [data-render] in the page (js/nav.js calls this again after each page swap)
+  return function () {
+    document.querySelectorAll("[data-t]").forEach(function (el) { el.textContent = get(el.dataset.t); });
+    document.querySelectorAll("[data-render]").forEach(function (el) { el.innerHTML = R[el.dataset.render](el); });
+  };
 })();
+renderPage();

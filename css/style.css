@@ -98,12 +98,19 @@ h1 { font-size: clamp(40px, 5.2vw, 64px); font-weight: 800; letter-spacing: -.04
 .rows > li > a > .txt + .go { margin-left: auto; }
 
 /* ---------- terminal window ---------- */
-.term { border: 1px solid #5a5a5c; border-radius: 10px; overflow: hidden; background: var(--bg); }
-.term-bar { display: flex; align-items: center; gap: 8px; padding: 10px 14px; border-bottom: 1px solid #5a5a5c; }
-.term-bar i { width: 12px; height: 12px; border-radius: 50%; background: #ff5f57; }
-.term-bar i:nth-child(2) { background: #febc2e; }
-.term-bar i:nth-child(3) { background: #28c840; }
-.term-bar span { margin-left: auto; font-size: 13px; color: var(--muted); }
+.term { border: 1px solid #5a5a5c; border-radius: 6px; overflow: hidden; background: var(--bg); }
+/* linux-style titlebar: title on the left, minimize / maximize / close on the right */
+.term-bar { display: flex; align-items: center; gap: 8px; padding: 4px 6px 4px 14px; border-bottom: 1px solid #5a5a5c; }
+.term-bar span { font-size: 13px; color: var(--muted); }
+.wm { margin-left: auto; display: flex; gap: 2px; color: var(--muted); }
+.wm i { position: relative; width: 24px; height: 22px; border-radius: 4px; }
+.wm i::before, .wm i::after { content: ""; position: absolute; }
+.wm .min::before { left: 7px; right: 7px; bottom: 7px; height: 1.5px; background: currentColor; }
+.wm .max::before { left: 7px; top: 6px; width: 8px; height: 8px; border: 1.5px solid currentColor; }
+.wm .cls::before, .wm .cls::after { left: 50%; top: 50%; width: 12px; height: 1.5px; background: currentColor; translate: -50% -50%; rotate: 45deg; }
+.wm .cls::after { rotate: -45deg; }
+.wm i:hover { background: #ffffff14; color: var(--fg); }
+.wm .cls:hover { background: #e5484d; color: #fff; }
 .term-body { padding: 16px 18px 18px; }
 .term .prompt { color: var(--lime); }
 .term .prompt::before { content: "$ "; }
@@ -127,38 +134,38 @@ h1 { font-size: clamp(40px, 5.2vw, 64px); font-weight: 800; letter-spacing: -.04
   box-shadow: 0 6px 24px #0008;
 }
 .info { padding-top: 6px; display: flex; flex-direction: column; min-width: 0; }
-.info b { font-size: 21px; letter-spacing: .02em; line-height: 1.3; }
+.info b { font-size: 21px; letter-spacing: .02em; line-height: 1.3; overflow-wrap: anywhere; }
 .info small { color: var(--muted); font-size: 14px; }
 .ic { padding: 6px; border-radius: 6px; color: var(--fg); transition: color .15s; }
 .ic .i { display: block; }
 .ic:hover, .ic[aria-pressed="true"] { color: var(--lime); }
-#p-like { margin-left: auto; }
-#p-like[aria-pressed="true"] svg { fill: currentColor; }
 .controls { display: flex; align-items: center; justify-content: space-between; margin: -34px 0 0 144px; padding: 0 4px; }
 .play { width: 62px; height: 62px; border-radius: 50%; background: var(--fg); color: var(--bg); display: grid; place-items: center; transition: transform .15s; }
 .play:hover { transform: scale(1.06); }
 .play .i { width: 26px; height: 26px; }
-.seek, .vol { display: flex; align-items: center; gap: 14px; font-size: 14px; }
-.seek { margin-top: 18px; }
-.seek span, .vol span, .vol .ic { width: 4ch; flex: none; }
-.seek span:last-child, .vol span { text-align: right; }
-.seek input, .vol input {
-  flex: 1; min-width: 0; height: 20px; appearance: none; -webkit-appearance: none; cursor: pointer;
-  background: linear-gradient(to right, var(--fill) var(--p, 0%), #3a3a3c var(--p, 0%)) center / 100% 4px no-repeat;
+/* volume: a speaker icon next to the heart; the slider pops open on hover / focus, click mutes */
+.top-actions { margin-left: auto; display: flex; align-items: center; gap: 2px; }
+.vol { position: relative; font-size: 13px; }
+.vol-pop {
+  position: absolute; top: 100%; left: 50%; z-index: 2; display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 10px 8px 8px;
+  background: var(--bg); border: 1px solid #5a5a5c; border-radius: 6px; color: var(--muted);
+  opacity: 0; visibility: hidden; translate: -50% -4px; transition: opacity .15s, translate .15s, visibility .15s;
 }
-.seek input { --fill: var(--lime); }
-.seek input::-webkit-slider-thumb { -webkit-appearance: none; width: 12px; height: 12px; border-radius: 50%; background: var(--fg); border: 0; }
-.seek input::-moz-range-thumb { width: 12px; height: 12px; border: 0; border-radius: 50%; background: var(--fg); }
-/* volume: same grid as the seek row (icon / track / value) but quieter, so lime stays for progress */
-.vol { margin-top: 14px; color: var(--muted); }
-.vol input { --fill: #8d8d89; background-size: 100% 2px; }
-.vol input::-webkit-slider-thumb { -webkit-appearance: none; width: 10px; height: 10px; border-radius: 50%; background: var(--fg); border: 0; }
-.vol input::-moz-range-thumb { width: 10px; height: 10px; border: 0; border-radius: 50%; background: var(--fg); }
-.vol .ic { padding: 0; display: flex; align-items: center; color: var(--muted); }
-.vol .ic:hover { color: var(--fg); }
-.vol .ic .i { width: 20px; height: 20px; }
-.wave { display: flex; align-items: center; gap: 3px; height: 36px; margin-top: 22px; }
-.wave i { flex: 1; min-width: 2px; border-radius: 1px; background: #4a4a4a; }
+.vol:hover .vol-pop, .vol:focus-within .vol-pop { opacity: 1; visibility: visible; translate: -50% 0; }
+.vol-pop span { min-width: 4ch; text-align: center; }
+.vol input {
+  writing-mode: vertical-lr; direction: rtl; /* vertical slider, up = louder */
+  width: 20px; height: 100px; appearance: none; -webkit-appearance: none; cursor: pointer;
+  background: linear-gradient(to top, var(--lime) var(--p, 0%), #3a3a3c var(--p, 0%)) center / 3px 100% no-repeat;
+}
+.vol input::-webkit-slider-thumb { -webkit-appearance: none; width: 11px; height: 11px; border-radius: 50%; background: var(--fg); border: 0; }
+.vol input::-moz-range-thumb { width: 11px; height: 11px; border: 0; border-radius: 50%; background: var(--fg); }
+.seek { display: flex; align-items: center; gap: 14px; margin-top: 20px; font-size: 14px; }
+.seek span { width: 4ch; flex: none; }
+.seek span:last-child { text-align: right; }
+.wave { flex: 1; min-width: 0; display: flex; align-items: center; gap: 2px; height: 44px; cursor: pointer; touch-action: none; user-select: none; }
+.wave i { flex: 1; min-width: 0; border-radius: 1px; background: #4a4a4a; transition: background .12s; }
+.wave:hover i:not(.on) { background: #6a6a6c; }
 .wave i.on { background: var(--lime); }
 
 @media (min-width: 1280px) { .lead { white-space: nowrap; } .hero > div { flex: none; } }
@@ -166,7 +173,7 @@ h1 { font-size: clamp(40px, 5.2vw, 64px); font-weight: 800; letter-spacing: -.04
 /* ---------- motion ---------- */
 @keyframes blink { 50% { opacity: 0; } }
 @keyframes pulse { 50% { opacity: .35; } }
-@media (prefers-reduced-motion: reduce) { .cur, .dot { animation: none; } * { transition: none !important; } }
+@media (prefers-reduced-motion: reduce) { .cur, .dot, .mini { animation: none; } * { transition: none !important; } }
 
 /* ---------- responsive ---------- */
 @media (max-width: 960px) {
@@ -185,3 +192,25 @@ h1 { font-size: clamp(40px, 5.2vw, 64px); font-weight: 800; letter-spacing: -.04
   .now { align-items: flex-start; }
   .txt b { font-size: 17px; }
 }
+
+/* ---------- mini player: one flat row, shown on every page except the one with the full player ---------- */
+.mini {
+  position: fixed; left: 50%; translate: -50% 0; bottom: 16px; z-index: 10; width: min(360px, calc(100vw - 32px));
+  display: flex; align-items: center; gap: 6px; padding: 10px 10px 12px 12px; overflow: hidden;
+  background: var(--bg); border: 1px solid #5a5a5c; border-radius: 10px; animation: mini-in .25s ease-out;
+}
+.mini[hidden] { display: none; }
+.mini .cover { width: 40px; height: 40px; border-radius: 6px; margin-right: 6px; box-shadow: none; }
+.mini .info { padding: 0; flex: 1; }
+.mini .info b { font-size: 14px; line-height: 1.3; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.mini .info small { font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.mini .ic { padding: 4px; }
+.mini .ic .i { width: 18px; height: 18px; }
+.mini .play { width: 32px; height: 32px; flex: none; }
+.mini .play .i { width: 14px; height: 14px; }
+.mini .close { color: var(--muted); margin-left: 4px; }
+.mini .close:hover { color: var(--fg); }
+.mini-line { position: absolute; left: 0; right: 0; bottom: 0; height: 2px; background: #2e2e30; }
+.mini-line::after { content: ""; display: block; height: 100%; width: var(--p, 0%); background: var(--lime); }
+body.has-mini { padding-bottom: 90px; }
+@keyframes mini-in { from { opacity: 0; transform: translateY(12px); } }

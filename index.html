@@ -53,34 +53,35 @@
     </div>
 
     <aside class="side">
-      <div class="player" id="player">
+      <div class="player">
         <div class="player-top">
-          <div class="cover" aria-hidden="true"></div>
+          <div class="cover" data-p="cover" aria-hidden="true"></div>
           <div class="info">
-            <b id="p-title"></b>
-            <small id="p-artist"></small>
+            <b data-p="title"></b>
+            <small data-p="artist"></small>
           </div>
-          <button class="ic" id="p-like" aria-label="like" aria-pressed="false"><svg class="i"><use href="assets/icons.svg#heart"/></svg></button>
+          <div class="top-actions">
+            <div class="vol">
+              <button class="ic" data-p="mute" aria-label="mute"><svg class="i"><use href="assets/icons.svg#volume"/></svg></button>
+              <div class="vol-pop">
+                <input type="range" data-p="vol" min="0" max="100" value="30" aria-label="volume" orient="vertical">
+                <span data-p="volnum">30%</span>
+              </div>
+            </div>
+          </div>
         </div>
         <div class="controls">
-          <button class="ic" id="p-shuffle" aria-label="shuffle" aria-pressed="false"><svg class="i"><use href="assets/icons.svg#shuffle"/></svg></button>
-          <button class="ic" id="p-prev" aria-label="previous"><svg class="i"><use href="assets/icons.svg#prev"/></svg></button>
-          <button class="play" id="p-play" aria-label="play"><svg class="i"><use href="assets/icons.svg#play"/></svg></button>
-          <button class="ic" id="p-next" aria-label="next"><svg class="i"><use href="assets/icons.svg#next"/></svg></button>
-          <button class="ic" id="p-repeat" aria-label="repeat" aria-pressed="false"><svg class="i"><use href="assets/icons.svg#repeat"/></svg></button>
+          <button class="ic" data-p="shuffle" aria-label="shuffle" aria-pressed="false"><svg class="i"><use href="assets/icons.svg#shuffle"/></svg></button>
+          <button class="ic" data-p="prev" aria-label="previous"><svg class="i"><use href="assets/icons.svg#prev"/></svg></button>
+          <button class="play" data-p="play" aria-label="play"><svg class="i"><use href="assets/icons.svg#play"/></svg></button>
+          <button class="ic" data-p="next" aria-label="next"><svg class="i"><use href="assets/icons.svg#next"/></svg></button>
+          <button class="ic" data-p="repeat" aria-label="repeat" aria-pressed="false"><svg class="i"><use href="assets/icons.svg#repeat"/></svg></button>
         </div>
         <div class="seek">
-          <span id="p-cur">0:00</span>
-          <input type="range" id="p-bar" min="0" max="1000" value="0" aria-label="seek">
-          <span id="p-dur">0:00</span>
+          <span data-p="cur">0:00</span>
+          <div class="wave" data-p="wave" role="slider" aria-valuemin="0" aria-valuemax="100" tabindex="0" aria-label="seek"></div>
+          <span data-p="dur">0:00</span>
         </div>
-        <div class="wave" id="p-wave" aria-hidden="true"></div>
-        <div class="vol">
-          <button class="ic" id="p-mute" aria-label="mute"><svg class="i"><use href="assets/icons.svg#volume"/></svg></button>
-          <input type="range" id="p-vol" min="0" max="100" value="30" aria-label="volume">
-          <span id="p-vol-n">30%</span>
-        </div>
-        <audio id="p-audio" preload="metadata"></audio>
       </div>
 
       <div class="term" data-render="term" data-src="home.terminal"></div>
@@ -100,5 +101,6 @@
 <script src="js/content.js"></script>
 <script src="js/render.js"></script>
 <script src="js/player.js"></script>
+<script src="js/nav.js"></script>
 </body>
 </html>
