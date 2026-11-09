@@ -1,102 +1,117 @@
 /* =====================================================================
-   EDIT ME — everything you'd want to change lives in this file.
+   EDIT ME — all the text on the site lives in this file.
+   save, refresh the page, done. (no build step)
+
+   an "icon" can also be an image path, e.g. "assets/projects/snowify.png"
+   (white-on-transparent png looks best).
+   icons you can use (the "icon" fields):
+     github discord youtube roblox x lastdotfm jellyfin
+     pin gamepad cube layers sparkle music
+   want another? add a <symbol> to assets/icons.svg.
+
+   every list below: copy a line, change it, or delete it to remove it.
    ===================================================================== */
 
-/* ---- the song in nyamp ----
-   drop an mp3 in assets/medias/ and put its exact filename here.
-   keep the "Title - Artist.mp3" format, the player reads it for the display */
-var SONG = "Punkrocker - Teddybears.mp3";
+/* ---- your links (used in the footer, the elsewhere page, and project rows) ---- */
+var LINKS = {
+  github:  "https://github.com/nyakuoff",
+  discord: "https://discord.gg/ey5e5aWcVW",
+  email:   "mailto:nyakusfx@gmail.com",
+  youtube: "#",   // TODO: put your channel url
+  roblox:  "#",   // TODO: put your profile url
+  x:       "#",   // TODO: put your profile url
+  lastfm:  "#"    // TODO: put your profile url
+};
 
-/* ---- my_works ----
-   each one becomes an item in the my_works folder + a card on the homepage.
-   double-clicking opens its own page.
-     title  : name shown everywhere
-     role   : what you did on it
-     where  : platform / studio, shown under the title
-     thumb  : image path
-     desc   : a paragraph or two (plain text, blank line = new paragraph)
-     link   : optional — "Visit" button on its page (game page, store page...)
-     embed  : optional — youtube/soundcloud EMBED url, shows a player on its page */
-var WORKS = [
-  {
-    title: "Grand Piece Online",
-    role: "Sound Design",
-    where: "Roblox",
-    thumb: "assets/works/gpo.jpg",
-    desc: "Sound design for Grand Piece Online.",
-    link: "",
-    embed: ""
-  },
-  {
-    title: "Abiotic Factor",
-    role: "Sound Design",
-    where: "PC",
-    thumb: "assets/works/abf.jpg",
-    desc: "Sound design for Abiotic Factor.",
-    link: "",
-    embed: ""
-  },
-  {
-    title: "Golden Piece Adventure",
-    role: "Front-End Scripting",
-    where: "Roblox",
-    thumb: "assets/works/gpa.jpg",
-    desc: "Front-end scripting for Golden Piece Adventure.",
-    link: "",
-    embed: ""
-  },
-  {
-    title: "RELL Seas",
-    role: "Sound Design",
-    where: "Roblox",
-    thumb: "assets/works/rellseas.jpg",
-    desc: "Sound design for RELL Seas.",
-    link: "",
-    embed: ""
-  }
-];
+var SITE = {
+  name: "nyaku",                 // logo + copyright
+  status: "probably coding",     // the little green dot in the header
 
-/* ---- games ----
-   each one becomes an icon in the games folder. double-click opens
-   the url inside a window.
-     name : label under the icon + window title
-     icon : any image, square works best (png/ico). leave "" for the default app icon
-     url  : the page that IS the game (itch.io embed links, your own builds, etc)
-     w, h : optional size of the game area, defaults to 1280 x 720
-            (shrinks to fit smaller screens, and every window can be resized)
+  /* interests tags: shown on the work page and the about page.
+     the green "+ more" tag is added for you; set moreTag to "" to hide it. */
+  tags: ["gamedev", "roblox", "linux", "self-hosting", "sound design", "ai", "tech"],
+  moreTag: "+ more",
 
-   heads up: some sites refuse to load inside a window (they block iframes).
-   if one shows up blank, use its embed/"fullscreen" url instead — on itch.io
-   that's the https://html-classic.itch.zone/html/... link.
-   games that need "shared memory" (cross-origin isolation) work in chrome/edge.
+  /* the music player on the work page.
+     folder: every song in here shows up in the player. after adding or removing
+             songs run  python3 songs.py  (it rebuilds songs.json in that folder).
+             name files "Title - Artist.mp3" — that's what the player displays, and
+             what the cover art is looked up with (iTunes).
+     volume: starting volume, 0-100. */
+  music: { folder: "assets/medias/", volume: 30 },
 
-   example:
-   { name: "my cool game", icon: "img/game-icons/cool.png", url: "https://example.com/game/" },
-*/
-var GAMES = [
-  { name: "Call of Duty: Black Ops",
-    icon: "img/game-icons/blackops.png",
-    url: "https://vel.gg/"
+  /* ---------------- work page ---------------- */
+  home: {
+    prompt: "whoami",
+    title: "hey, i'm nyaku.",
+    lead: "i make things, break things, and occasionally finish them.",
+
+    doPrompt: "i doooo",
+    doText: "i mainly build games, tools and things that just feel good to use. i like keeping it simple, efficient, and a bit personal.",
+
+    workPrompt: "work",
+    /* icon / title / desc / year / href */
+    work: [
+      { icon: "assets/projects/snowify.png", title: "Snowify", desc: "Free desktop music app that streams from YouTube Music.", year: "2026", href: "https://github.com/nyakuoff/Snowify" },
+      { icon: "assets/projects/rivals.png", title: "Rivals Swapper", desc: "Marvel Rivals skin swapper written in rust.", year: "2026", href: "https://github.com/nyakuoff/Rivals-Swapper" },
+      { icon: "assets/projects/cinelog.png", title: "Cinelog", desc: "self-hosted Letterboxd alternative for show and movie reviews.", year: "2026", href: "https://github.com/nyakuoff/Cinelog" }
+    ],
+
+    nowPrompt: "currently",
+    now: "building useful software and learning as i go.",
+
+    /* the little terminal window in the sidebar */
+    terminal: { title: "terminal", prompt: "currently", lines: ["coding, designing, listening to music...", "and probably debugging something."] },
+    interestsPrompt: "interests"
   },
-  { name: "osu!",
-    icon: "img/game-icons/osu.ico",
-    url: "https://wosu.dino.icu/"
-  },
-];
 
-/* ---- roblox ----
-   the "Roblox" app on the desktop: a games site that looks games up live.
-     picks  : place ids shown at the top as "nyaku's picks". a place id is
-              the number in a game's link: roblox.com/games/1730877806/... -> 1730877806
-     charts : true = also show roblox's live charts (top trending, top playing...)
-     icon   : optional square icon for the app, "" = default app icon
-     logo   : optional image for the site's header logo (e.g. "img/roblox-logo.png"),
-              "" = plain "ROBLOX" text. keep it around 40-50px tall
-   clicking Play asks first, then opens play.roblox.com in a popup window,
-   which uses whatever roblox account the visitor is already signed into. */
-var ROBLOX = {
-  picks: [1730877806, 10449761463],
-  charts: true,
-  icon: "img/game-icons/roblox.ico",
-  logo: "img/Roblox_logo.webp"
+  /* ---------------- about page ---------------- */
+  about: {
+    prompt: "about",
+    title: "a bit about me.",
+    lead: "i’m Nyaku — a developer, designer, sound designer, and builder of systems and experiences.",
+
+    infoPrompt: "quick info",
+    /* icon / label / text */
+    info: [
+      { icon: "pin",      label: "location",  text: "Morocco." },
+      { icon: "gamepad",  label: "focus",     text: "game dev — building games, tools, and playful systems." },
+      { icon: "cube",     label: "tools",     text: "Lua, C/C++, Python, Godot, and a mix of creative tools." },
+      { icon: "layers",   label: "systems",   text: "engineering comfortable, simple, and reusable systems." },
+      { icon: "sparkle",  label: "interests", text: "music, audio, sound design, emulation, and retro tech." }
+    ],
+
+    setup: { title: "setup", prompt: "my setup", lines: [
+      "os: Linux (Arch)",
+      "editor: Neovim",
+      "tools: Godot, Blender, FL Studio",
+      "audio: headphones, a small MIDI keyboard"
+    ] },
+    /* the interests window shows the same tags as above */
+    interestsWindow: { title: "interests.exe", prompt: "interests" }
+  },
+
+  /* ---------------- elsewhere page ---------------- */
+  elsewhere: {
+    prompt: "elsewhere",
+    title: "find me elsewhere.",
+    lead: "these are the places where Nyaku posts updates, code, projects, or random things.",
+    /* icon / title / desc / href */
+    links: [
+      { icon: "github",    title: "GitHub",  desc: "code, projects, and other things i build.",        href: LINKS.github },
+      { icon: "discord",   title: "Discord", desc: "hang out, chat, or follow small updates.",         href: LINKS.discord },
+      { icon: "youtube",   title: "YouTube", desc: "videos, devlogs, and random creations.",           href: LINKS.youtube },
+      { icon: "roblox",    title: "Roblox",  desc: "my Roblox profile, games, and experiments.",       href: LINKS.roblox },
+      { icon: "x",         title: "X",       desc: "quick updates, progress, and random thoughts.",    href: LINKS.x },
+      { icon: "lastdotfm", title: "Last.fm", desc: "what i’m listening to, scrobbles, and music stats.", href: LINKS.lastfm }
+    ],
+    status: { title: "terminal", prompt: "status", lines: ["usually coding, listening to music, or working on something new."] }
+  },
+
+  /* footer: label + url, in order */
+  footer: [
+    ["github", LINKS.github],
+    ["discord", LINKS.discord],
+    ["email", LINKS.email]
+  ]
 };

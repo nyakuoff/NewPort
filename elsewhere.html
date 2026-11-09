@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>nyaku. — elsewhere</title>
+  <meta name="description" content="the places where nyaku posts updates, code, projects, or random things.">
+  <meta name="theme-color" content="#0a0a0b">
+  <link rel="icon" href="assets/nyaku_pixelartpfp.gif">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700;800&display=swap">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<div class="wrap">
+
+  <header class="top">
+    <a class="logo" href="index.html" data-render="logo"></a>
+    <span class="status"><i class="dot"></i><span data-t="status"></span></span>
+    <nav>
+      <a href="index.html">work</a>
+      <a href="about.html">about</a>
+      <a href="elsewhere.html" aria-current="page">elsewhere</a>
+    </nav>
+  </header>
+
+  <main>
+    <section class="hero bordered">
+      <div>
+        <p class="prompt" data-t="elsewhere.prompt"></p>
+        <h1><span data-t="elsewhere.title"></span><span class="cur"></span></h1>
+        <p class="lead" data-t="elsewhere.lead"></p>
+      </div>
+      <svg class="art globe" aria-hidden="true"><use href="assets/icons.svg#globe"/></svg>
+    </section>
+
+    <ul class="rows" data-render="links"></ul>
+
+    <section class="foot-row">
+      <div class="term" data-render="term" data-src="elsewhere.status"></div>
+      <svg class="art mascot" aria-hidden="true"><use href="assets/icons.svg#mascot"/></svg>
+    </section>
+  </main>
+
+  <footer data-render="footer"></footer>
+
+</div>
+<script src="js/content.js"></script>
+<script src="js/render.js"></script>
+</body>
+</html>

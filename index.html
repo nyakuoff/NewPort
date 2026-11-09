@@ -1,458 +1,104 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>nyakuverse</title>
-  <meta name="description" content="nyaku — sound designer, scripter & vfx artist. a little windows 7 pc on the internet.">
-  <link rel="icon" href="img/icons/ie-16.png">
-  <link rel="stylesheet" href="https://unpkg.com/7.css@0.21.1/dist/7.scoped.css">
+  <title>nyaku. — work</title>
+  <meta name="description" content="nyaku — i make things, break things, and occasionally finish them. games, tools, systems and sound.">
+  <meta name="theme-color" content="#0a0a0b">
+  <link rel="icon" href="assets/nyaku_pixelartpfp.gif">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700;800&display=swap">
   <link rel="stylesheet" href="css/style.css">
 </head>
+<body>
+<div class="wrap">
 
-<body class="win7">
+  <header class="top">
+    <a class="logo" href="index.html" data-render="logo"></a>
+    <span class="status"><i class="dot"></i><span data-t="status"></span></span>
+    <nav>
+      <a href="index.html" aria-current="page">work</a>
+      <a href="about.html">about</a>
+      <a href="elsewhere.html">elsewhere</a>
+    </nav>
+  </header>
 
-  <!-- ============ BOOT → LOGON (once per session) ============ -->
-  <div id="boot" hidden>
-    <div class="boot-text">Starting Windows</div>
-    <div class="boot-copy">&copy; Microsoft Corporation</div>
-  </div>
-  <div id="logon" hidden>
-    <button class="user-tile" id="logon-user">
-      <span class="tile-frame"><img src="assets/nyaku_pixelartpfp.gif" alt=""></span>
-      <span class="tile-name">nyaku</span>
-    </button>
-    <div class="logon-wait" hidden><span class="spinner animate"></span><span>Welcome</span></div>
-    <div class="logon-brand">Windows<sup>&reg;</sup> 7 <span>Ultimate</span></div>
-  </div>
+  <main class="split">
+    <div class="main">
+      <section class="hero">
+        <div>
+          <p class="prompt" data-t="home.prompt"></p>
+          <h1><span data-t="home.title"></span><span class="cur"></span></h1>
+          <p class="lead" data-t="home.lead"></p>
+        </div>
+        <svg class="art cat" aria-hidden="true"><use href="assets/icons.svg#cat"/></svg>
+      </section>
 
-  <div id="scale-wrap">
-  <div id="desktop">
+      <section>
+        <p class="prompt" data-t="home.doPrompt"></p>
+        <p data-t="home.doText"></p>
+      </section>
 
-    <!-- ============ DESKTOP ICONS ============ -->
-    <div id="icon-layer">
-      <button class="desk-icon" data-open="computer"><img src="img/icons/computer.png" alt=""><span>Computer</span></button>
-      <button class="desk-icon" data-open="recycle"><img src="img/icons/recycle-full.png" alt="" class="recycle-ico"><span>Recycle Bin</span></button>
-      <button class="desk-icon shortcut" data-open="blog"><img src="img/icons/ie.png" alt=""><span>nyaku's blog</span></button>
-      <button class="desk-icon" data-open="works"><img src="img/icons/folder.png" alt=""><span>my_works</span></button>
-      <button class="desk-icon" data-open="games"><img src="img/icons/games.png" alt=""><span>Games</span></button>
-      <button class="desk-icon shortcut" data-open="roblox"><img src="img/icons/app.png" alt="" data-rbx-icon><span>Roblox</span></button>
-      <button class="desk-icon shortcut" data-open="player"><img src="img/icons/wmp.png" alt=""><span>Windows Media Player</span></button>
-      <button class="desk-icon shortcut" data-open="contact"><img src="img/icons/mail.png" alt=""><span>contact me</span></button>
-      <button class="desk-icon" data-open="troll"><img src="img/icons/app.png" alt=""><span>do_not_open.exe</span></button>
+      <section>
+        <p class="prompt" data-t="home.workPrompt"></p>
+        <ul class="rows" data-render="work"></ul>
+      </section>
+
+      <section>
+        <p class="prompt" data-t="home.nowPrompt"></p>
+        <p class="now"><svg class="i"><use href="assets/icons.svg#arrow-r"/></svg><span data-t="home.now"></span></p>
+      </section>
     </div>
 
-    <!-- slide show gadget: stuff i like -->
-    <div class="gadget" id="slideshow" title="stuff i like">
-      <img src="assets/medias/mrrobot.jpg" alt="mr. robot" class="on">
-      <img src="assets/medias/tlou.jpg" alt="the last of us">
-      <img src="assets/medias/twilight.jpg" alt="twilight">
-      <img src="assets/works/abf.jpg" alt="abiotic factor">
-    </div>
-
-    <!-- ============================================================ -->
-    <!-- HOMEPAGE — a 2010 "web 2.0" personal site inside IE9          -->
-    <!-- ============================================================ -->
-    <div class="window glass browser" id="win-blog" data-title="nyakuverse - Windows Internet Explorer" data-icon="img/icons/ie-16.png" data-notext
-      style="left:290px; top:16px; width:980px; height:780px;">
-      <div class="ie-bar">
-        <button class="round back" disabled aria-label="Back">&#8592;</button>
-        <button class="round fwd" disabled aria-label="Forward">&#8594;</button>
-        <div class="ie-address"><img src="img/icons/ie-16.png" alt=""><span id="ie-url">http://www.nyakuverse.net/</span><button class="ie-refresh" data-goto="top" aria-label="Refresh">&#8635;</button></div>
-        <div class="ie-tab"><img src="assets/nyaku_pixelartpfp.gif" alt=""><span>nyakuverse - home</span><i>&times;</i></div>
-        <div class="ie-tools"><a data-goto="top" title="Home">&#8962;</a><a title="Favorites">&#9734;</a><a title="Tools">&#9881;</a></div>
-      </div>
-
-      <div class="window-body viewport has-scrollbar" id="blog-view">
-        <div class="aero" id="top">
-          <div class="aero-page">
-
-            <header class="aero-head">
-              <div class="aero-brand">
-                <h1>nyakuverse<span class="beta">beta</span></h1>
-                <p>sound design &middot; scripting &middot; vfx</p>
-              </div>
-              <div class="aero-orb"><img src="assets/nyaku_pixelartpfp.gif" alt="nyaku's avatar" width="96" height="96"></div>
-            </header>
-
-            <nav class="aero-nav">
-              <a data-goto="top" class="on">Home</a>
-              <a data-open="works">My Works</a>
-              <a data-open="games">Games</a>
-              <a data-goto="about">About Me</a>
-              <a data-goto="media">Favorites</a>
-              <a data-open="contact">Contact</a>
-            </nav>
-
-            <div class="infobar"><b>i</b><span>This site is made for a <strong>desktop</strong> browser and is <strong>NOT made for mobile</strong>. If you're on your phone, it's ggs &mdash; go find a computer.</span></div>
-
-            <div class="aero-cols">
-              <main class="aero-main">
-
-                <section class="panel">
-                  <h2>Welcome!</h2>
-                  <div class="panel-body">
-                    <p><b>hi!! i am SO happy you're here &#9825;</b></p>
-                    <p>my name is <b class="rainbow">nyaku</b> &mdash; i design sound, script &amp; make VFX and forget stuff all the time. this is my little corner of the internet. poke around: my <a data-open="works">works</a> live in the folder on the desktop, and so do some <a data-open="games">games</a>.</p>
-                  </div>
-                </section>
-
-                <section class="panel">
-                  <h2>Latest Work <a class="more" data-open="works">view all &raquo;</a></h2>
-                  <div class="panel-body"><div class="work-grid" id="work-set"></div></div>
-                </section>
-
-                <section class="panel" id="about">
-                  <h2>About Me</h2>
-                  <div class="panel-body">
-                    <img class="avatar-full" src="assets/nyaku_avatar_fullbody.webp" alt="nyaku, full body drawing" width="150" height="223">
-                    <p>18, he/him, born in Morocco. I design sound, write scripts, and build VFX for whatever weird project I've convinced myself is a good idea this week. Most of it ends up here eventually, assuming I don't lose the file first.</p>
-                    <p>I like things loud, glitchy, and a little too much &mdash; this website included. Chaotic, and im allegedly a functioning adult.</p>
-                    <blockquote>in reheated pizza i believe. in 3am debug sessions i believe. in Mr. Robot i believe.</blockquote>
-                    <figure class="spidey"><img src="assets/spiderman.gif" alt="spiderman dancing" width="188" height="120"><figcaption>me, allegedly</figcaption></figure>
-                  </div>
-                </section>
-
-                <section class="panel facts">
-                  <h2>Fast Facts &amp; Favorites</h2>
-                  <div class="panel-body two">
-                    <ul class="ticks">
-                      <li>18 &middot; he/him</li>
-                      <li>from Morocco</li>
-                      <li>sound designer</li>
-                      <li>scripter &middot; vfx artist</li>
-                      <li>i forget about stuff ALL THE TIME</li>
-                      <li>i love kfc so fking much</li>
-                      <li>part time perfectionist</li>
-                      <li>i ran out of ideas for this one</li>
-                    </ul>
-                    <table class="favs">
-                      <tr><th>color</th><td>orange</td></tr>
-                      <tr><th>animal</th><td>harp seal</td></tr>
-                      <tr><th>season</th><td>winter</td></tr>
-                      <tr><th>drink</th><td>water</td></tr>
-                      <tr><th>fruit</th><td>idk</td></tr>
-                      <tr><th>sound</th><td>farts</td></tr>
-                      <tr><th>game</th><td>firewatch</td></tr>
-                      <tr><th>word</th><td>copacetic</td></tr>
-                    </table>
-                    <img class="corner-gif" src="assets/caprisun.gif" alt="a spinning caprisun" width="160" height="135">
-                  </div>
-                </section>
-
-                <section class="panel" id="media">
-                  <h2>Stuff I Like</h2>
-                  <div class="panel-body gallery">
-                    <figure><img src="assets/medias/mrrobot.jpg" alt=""><figcaption>Mr. Robot</figcaption></figure>
-                    <figure><img src="assets/medias/tlou.jpg" alt=""><figcaption>The Last of Us</figcaption></figure>
-                    <figure><img src="assets/medias/twilight.jpg" alt=""><figcaption>Twilight</figcaption></figure>
-                    <figure><img src="assets/works/abf.jpg" alt=""><figcaption>Abiotic Factor</figcaption></figure>
-                  </div>
-                </section>
-
-                <section class="panel safe" id="stand">
-                  <h2>This Is a Safe Space</h2>
-                  <div class="panel-body">
-                    <div class="safe-row">
-                      <a class="heart" id="heart" title="click me"><img src="assets/lgbt-heart-x2-bi-outline.png" alt="bi pride heart" width="52" height="52"></a>
-                      <p>this is me! <b>bi &amp; proud.</b> everyone is welcome here <b>always</b>. this corner of the web loves you. some things just aren't up for debate &#9825;</p>
-                    </div>
-                    <ul class="ticks two-col">
-                      <li>trans rights are human rights</li>
-                      <li>sex work is work</li>
-                      <li>black lives matter</li>
-                      <li>protect trans kids</li>
-                      <li>free palestine</li>
-                      <li>no human is illegal</li>
-                      <li>disabled rights are human rights</li>
-                      <li>no one is free until we're all free</li>
-                    </ul>
-                    <div class="badges">
-                      <img src="assets/lgbt-heart-x2-progress-outline.png" alt="progress pride heart" width="40" height="40">
-                      <img src="assets/community/pride_modern/rainbow.png" alt="rainbow flag">
-                      <img src="assets/community/pride_modern/bi-rights.gif" alt="bi rights">
-                      <img src="assets/community/pride_modern/transrights.gif" alt="trans rights">
-                      <img src="assets/community/pride_modern/pride.png" alt="pride">
-                      <img src="assets/community/pride_modern/getqueer.gif" alt="get queer now">
-                      <img src="assets/community/pride_modern/queercode.png" alt="you're telling me a queer coded this">
-                    </div>
-                  </div>
-                </section>
-
-                <section class="panel hoard">
-                  <h2>My Old GeoCities Stuff <small>(archived, do not touch)</small></h2>
-                  <div class="panel-body">
-                    <div class="strip">
-                      <img src="assets/open24hrs.gif" alt="open 24 hours" width="127" height="20">
-                      <img src="assets/community/blinkies/blinkies_08.gif" alt="welcome to my homepage">
-                      <img src="assets/community/blinkies/blinkies_06.gif" alt="you copy you die">
-                      <img src="assets/community/blinkies/blinkies_21.gif" alt="sign our guestbook">
-                      <img src="assets/community/blinkies/blinkies_13.gif" alt="click here">
-                      <img src="assets/community/blinkies/blinkies_02.gif" alt="backgrounds by angelpie">
-                      <img src="assets/community/blinkies/blinkies_14.gif" alt="about me">
-                      <img src="assets/community/blinkies/blinkies_18.gif" alt="">
-                      <img src="assets/community/blinkies/blinkies_03.gif" alt="email me">
-                      <img src="assets/community/blinkies/blinkies_10.gif" alt="">
-                      <img src="assets/community/blinkies/blinkies_07.gif" alt="">
-                      <img src="assets/community/blinkies/blinkies_05.gif" alt="">
-                      <img src="assets/community/blinkies/blinkies_19.gif" alt="send me">
-                    </div>
-                    <div class="strip">
-                      <img src="assets/community/buttons/buttons_00.gif" alt="">
-                      <img src="assets/community/buttons/buttons_01.gif" alt="">
-                      <img src="assets/community/buttons/buttons_02.gif" alt="">
-                      <img src="assets/community/buttons/buttons_03.gif" alt="">
-                      <img src="assets/community/buttons/buttons_06.gif" alt="">
-                      <img src="assets/community/buttons/buttons_07.gif" alt="">
-                      <img src="assets/community/buttons/buttons_08.gif" alt="">
-                      <img src="assets/community/buttons/buttons_09.gif" alt="">
-                      <img src="assets/community/buttons/buttons_13.gif" alt="">
-                      <img src="assets/community/buttons/buttons_15.gif" alt="">
-                      <img src="assets/community/buttons/buttons_16.gif" alt="">
-                      <img src="assets/community/buttons/buttons_17.gif" alt="">
-                      <img src="assets/community/buttons/buttons_18.gif" alt="">
-                      <img src="assets/community/buttons/buttons_19.gif" alt="">
-                      <img src="assets/community/buttons/buttons_22.gif" alt="">
-                      <img src="assets/community/buttons/buttons_23.gif" alt="">
-                      <img src="assets/community/buttons/buttons_25.gif" alt="">
-                      <img src="assets/community/buttons/buttons_28.gif" alt="">
-                      <img src="assets/community/buttons/buttons_29.gif" alt="">
-                    </div>
-                    <div class="strip cute">
-                      <img src="assets/community/cute/cute_00.gif" alt="">
-                      <img src="assets/community/cute/cute_04.gif" alt="">
-                      <img src="assets/community/cute/cute_16.gif" alt="">
-                      <img src="assets/community/cute/cute_01.gif" alt="">
-                      <img src="assets/community/cute/cute_08.gif" alt="">
-                      <img src="assets/community/cute/cute_19.gif" alt="">
-                      <img src="assets/community/cute/cute_24.gif" alt="">
-                      <img src="assets/2306_2.png" alt="">
-                      <img src="assets/5-2.png" alt="">
-                    </div>
-                  </div>
-                </section>
-              </main>
-
-              <aside class="aero-side">
-                <section class="msn">
-                  <div class="msn-pic"><img src="assets/nyaku_pixelartpfp.gif" alt="" width="64" height="64"></div>
-                  <div class="msn-who">
-                    <b>nyaku <span class="online">(Online)</span></b>
-                    <a class="msn-psm" data-play title="play / pause">&#9835; <span class="song-title">song</span> - <span class="song-artist">artist</span></a>
-                  </div>
-                </section>
-
-                <section class="panel">
-                  <h2>Currently</h2>
-                  <div class="panel-body">
-                    <dl class="now">
-                      <dt>listening</dt><dd><a data-open="player">check the media player</a></dd>
-                      <dt>watching</dt><dd>Dexter (most likely outdated)</dd>
-                      <dt>coding</dt><dd>probably something useless</dd>
-                      <dt>feeling</dt><dd>whimsical</dd>
-                    </dl>
-                    <img class="side-gif" src="assets/beardbear_guit1.gif" alt="bear playing guitar" width="70" height="70">
-                  </div>
-                </section>
-
-                <section class="panel">
-                  <h2>Tags</h2>
-                  <div class="panel-body cloud">
-                    <a class="t5" data-open="works">sound design</a> <a class="t2">roblox</a> <a class="t4" data-open="works">scripting</a> <a class="t1">harp seals</a>
-                    <a class="t4" data-open="works">vfx</a> <a class="t2" data-goto="about">mr. robot</a> <a class="t1">kfc</a> <a class="t3" data-open="games">games</a>
-                    <a class="t1">winter</a> <a class="t2">3am</a> <a class="t3" data-open="player">music</a> <a class="t1">firewatch</a> <a class="t2">orange</a> <a class="t1">copacetic</a>
-                  </div>
-                </section>
-
-                <section class="panel">
-                  <h2>Get In Touch</h2>
-                  <div class="panel-body">
-                    <a class="gel" data-open="contact">&#9993;&#xFE0E; Send me an email</a>
-                    <a class="gel green" href="https://discord.gg/ey5e5aWcVW" target="_blank" rel="noopener">&#9787; Join my Discord</a>
-                    <p class="small">wanna hire me or collab? hit me up!</p>
-                  </div>
-                </section>
-
-                <section class="panel">
-                  <h2>Web Badges</h2>
-                  <div class="panel-body stamps">
-                    <img src="assets/Button_Powered_by_Autism.gif" alt="powered by autism" width="88" height="31">
-                    <img src="assets/Button_TBH.gif" alt="tbh" width="88" height="31">
-                    <img src="assets/Button_I_Like_Computer.png" alt="i like computer" width="88" height="31">
-                    <img src="assets/Button_Yuri_Now.gif" alt="yuri now" width="88" height="31">
-                    <img src="assets/community/buttons/buttons_11.gif" alt="internet explorer is evil" width="88" height="31">
-                    <img src="assets/standwith_palestine.png" alt="stand with palestine" width="88" height="31">
-                  </div>
-                </section>
-              </aside>
-            </div>
-
-            <footer class="aero-foot">
-              <figure><img src="assets/cats_campfire.gif" alt="cats around a campfire" width="432" height="114"><figcaption>us at 2am</figcaption></figure>
-              <p>&copy; 2010&ndash;<span id="year">2026</span> nyaku &middot; last updated <span id="last-updated">today</span> &middot; Valid XHTML 1.0 Strict (probably not)</p>
-              <p>Best viewed in Internet Explorer 9 at 1280&times;720 &middot; <a data-goto="top">back to top &uarr;</a></p>
-            </footer>
+    <aside class="side">
+      <div class="player" id="player">
+        <div class="player-top">
+          <div class="cover" aria-hidden="true"></div>
+          <div class="info">
+            <b id="p-title"></b>
+            <small id="p-artist"></small>
           </div>
+          <button class="ic" id="p-like" aria-label="like" aria-pressed="false"><svg class="i"><use href="assets/icons.svg#heart"/></svg></button>
         </div>
-      </div>
-    </div>
-
-    <!-- ============================================================ -->
-    <!-- WINDOWS EXPLORER — one window, navigates in place (built in js) -->
-    <!-- ============================================================ -->
-    <div class="window glass explorer" id="win-explorer" data-title="my_works" data-icon="img/icons/folder-16.png" data-notext
-      style="left:360px; top:90px; width:860px; height:560px;" hidden>
-      <div class="ex-nav">
-        <button class="round back" disabled aria-label="Back">&#8592;</button><button class="round fwd" disabled aria-label="Forward">&#8594;</button>
-        <div class="crumb"><img id="ex-crumb-ico" src="img/icons/folder-16.png" alt=""><span id="ex-crumb"></span><span class="grow"></span><span class="refresh">&#8635;</span></div>
-        <div class="searchbox"><input type="search" id="ex-search" placeholder="Search" aria-label="Search"><button aria-label="search"></button></div>
-      </div>
-      <div class="window-body explorer-body">
-        <div class="cmdbar" id="ex-cmds"></div>
-        <div class="ex-main"><nav class="ex-tree has-scrollbar" id="ex-tree"></nav><div class="ex-view files has-scrollbar" id="ex-view"></div></div>
-        <div class="details" id="ex-details"></div>
-      </div>
-    </div>
-
-    <!-- ============================================================ -->
-    <!-- WINDOWS MEDIA PLAYER 12 — now playing                         -->
-    <!-- ============================================================ -->
-    <div class="window glass wmp" id="win-player" data-title="Windows Media Player" data-icon="img/icons/wmp-16.png" data-notext
-      style="left:1100px; top:60px; width:400px;" hidden>
-      <div class="window-body wmp-body">
-        <div class="wmp-stage">
-          <img src="img/icons/cd-128.png" alt="" class="wmp-art">
-          <canvas id="mp-vis" width="300" height="48"></canvas>
-          <div class="wmp-info"><b class="song-title">song</b><span class="song-artist">artist</span></div>
+        <div class="controls">
+          <button class="ic" id="p-shuffle" aria-label="shuffle" aria-pressed="false"><svg class="i"><use href="assets/icons.svg#shuffle"/></svg></button>
+          <button class="ic" id="p-prev" aria-label="previous"><svg class="i"><use href="assets/icons.svg#prev"/></svg></button>
+          <button class="play" id="p-play" aria-label="play"><svg class="i"><use href="assets/icons.svg#play"/></svg></button>
+          <button class="ic" id="p-next" aria-label="next"><svg class="i"><use href="assets/icons.svg#next"/></svg></button>
+          <button class="ic" id="p-repeat" aria-label="repeat" aria-pressed="false"><svg class="i"><use href="assets/icons.svg#repeat"/></svg></button>
         </div>
-        <input type="range" id="mp-seek" class="wmp-seek" min="0" max="1000" value="0" aria-label="seek">
-        <div class="wmp-controls">
-          <span class="wmp-time" id="mp-time">00:00</span>
-          <button class="wmp-btn" id="mp-loop" title="Turn repeat on">&#10227;</button>
-          <button class="wmp-btn" id="mp-stop" title="Stop">&#9632;&#xFE0E;</button>
-          <button class="wmp-btn" id="mp-prev" title="Previous">&#9198;&#xFE0E;</button>
-          <button class="wmp-play" id="mp-play" title="Play" data-play>&#9654;&#xFE0E;</button>
-          <button class="wmp-btn" id="mp-next" title="Next">&#9197;&#xFE0E;</button>
-          <button class="wmp-btn" id="mp-mute" title="Mute">&#128266;&#xFE0E;</button>
-          <input type="range" id="mp-vol" class="wmp-vol" min="0" max="100" value="30" aria-label="volume">
+        <div class="seek">
+          <span id="p-cur">0:00</span>
+          <input type="range" id="p-bar" min="0" max="1000" value="0" aria-label="seek">
+          <span id="p-dur">0:00</span>
         </div>
-      </div>
-      <audio id="mp-audio" preload="none"></audio>
-    </div>
-
-    <!-- ============================================================ -->
-    <!-- CONTACT — new message                                        -->
-    <!-- ============================================================ -->
-    <div class="window glass" id="win-contact" data-title="New Message" data-icon="img/icons/mail-16.png"
-      style="left:480px; top:140px; width:560px;" hidden>
-      <div class="window-body mail-body">
-        <div class="cmdbar"><button class="cmd" id="mail-send"><img src="img/icons/mail-16.png" alt="">Send</button><a class="cmd" href="https://discord.gg/ey5e5aWcVW" target="_blank" rel="noopener">Add me on Discord</a></div>
-        <div class="mail-fields">
-          <label><span>To:</span><input type="text" value="nyakusfx@gmail.com" readonly></label>
-          <label><span>Subject:</span><input type="text" id="mail-subj" value="i saw your website and..."></label>
+        <div class="wave" id="p-wave" aria-hidden="true"></div>
+        <div class="vol">
+          <button class="ic" id="p-mute" aria-label="mute"><svg class="i"><use href="assets/icons.svg#volume"/></svg></button>
+          <input type="range" id="p-vol" min="0" max="100" value="30" aria-label="volume">
+          <span id="p-vol-n">30%</span>
         </div>
-        <textarea id="mail-body" aria-label="message">hi nyaku!
-
-wanna hire me or collab? hit me up!</textarea>
+        <audio id="p-audio" preload="metadata"></audio>
       </div>
-    </div>
 
-    <!-- ============================================================ -->
-    <!-- COMPUTER — control panel › system                            -->
-    <!-- ============================================================ -->
-    <div class="window glass" id="win-computer" data-title="System" data-icon="img/icons/computer-16.png" data-notext data-crumb="Control Panel,System and Security,System"
-      style="left:340px; top:110px; width:840px; height:580px;" hidden>
-      <div class="window-body cpl has-scrollbar">
-        <nav class="cpl-tasks">
-          <a>Control Panel Home</a>
-          <a>Device Manager</a>
-          <a>Remote settings</a>
-          <a>System protection</a>
-          <a>Advanced system settings</a>
-          <div class="cpl-see">See also<a>Action Center</a><a>Windows Update</a></div>
-        </nav>
-        <div class="cpl-main">
-          <h1>View basic information about your computer</h1>
-          <h2>Windows edition</h2>
-          <dl><dt></dt><dd>Windows 7 Ultimate<br>Copyright &copy; 2009 Microsoft Corporation. All rights reserved.<br>Service Pack 1</dd></dl>
-          <h2>System</h2>
-          <dl>
-            <dt>Rating:</dt><dd><span class="wei">1.0</span> <a>Windows Experience Index</a></dd>
-            <dt>Processor:</dt><dd>nyaku(R) Brain(TM) Quad @ 3:00 AM</dd>
-            <dt>Installed memory (RAM):</dt><dd>64.0 GB (forgets stuff all the time)</dd>
-            <dt>System type:</dt><dd>64-bit Operating System</dd>
-            <dt>Pen and Touch:</dt><dd>No Pen or Touch Input is available for this Display</dd>
-          </dl>
-          <h2>Computer name, domain, and workgroup settings</h2>
-          <dl>
-            <dt>Computer name:</dt><dd>NYAKU-PC</dd>
-            <dt>Full computer name:</dt><dd>NYAKU-PC</dd>
-            <dt>Computer description:</dt><dd>sound designer &middot; scripter &middot; vfx artist &middot; 18 &middot; morocco</dd>
-            <dt>Workgroup:</dt><dd>WORKGROUP</dd>
-          </dl>
-          <h2>Windows activation</h2>
-          <dl><dt></dt><dd>Windows is activated<br>Product ID: 00426-NYAKU-67676-00067</dd></dl>
-        </div>
-      </div>
-    </div>
+      <div class="term" data-render="term" data-src="home.terminal"></div>
 
-  </div><!-- /#desktop -->
+      <section class="interests">
+        <p class="prompt" data-t="home.interestsPrompt"></p>
+        <ul class="tags" data-render="tags"></ul>
+      </section>
 
-  <!-- ============ START MENU ============ -->
-  <div id="start-menu" hidden>
-    <div class="sm-left">
-      <div class="sm-list" id="sm-list">
-        <button class="sm-item" data-open="blog"><img src="img/icons/ie.png" alt="">nyaku's blog</button>
-        <button class="sm-item" data-open="works"><img src="img/icons/folder.png" alt="">my_works</button>
-        <button class="sm-item" data-open="games"><img src="img/icons/games.png" alt="">Games</button>
-        <button class="sm-item" data-open="roblox"><img src="img/icons/app.png" alt="" data-rbx-icon>Roblox</button>
-        <button class="sm-item" data-open="player"><img src="img/icons/wmp.png" alt="">Windows Media Player</button>
-        <button class="sm-item" data-open="contact"><img src="img/icons/mail.png" alt="">contact me</button>
-        <button class="sm-item" data-open="bear"><img src="assets/bear.png" alt="">pet the bear</button>
-      </div>
-      <div class="sm-list" id="sm-results" hidden></div>
-      <div class="sm-all">All Programs</div>
-      <div class="sm-search"><input type="search" id="sm-search" placeholder="Search programs and files" aria-label="Search programs and files" autocomplete="off"></div>
-    </div>
-    <div class="sm-right">
-      <div class="sm-pic"><img src="assets/nyaku_pixelartpfp.gif" alt=""></div>
-      <button class="sm-link" data-open="blog">nyaku</button>
-      <button class="sm-link" data-open="works">Documents</button>
-      <button class="sm-link" data-goto="media">Pictures</button>
-      <button class="sm-link" data-open="player">Music</button>
-      <button class="sm-link" data-open="games">Games</button>
-      <button class="sm-link" data-open="computer">Computer</button>
-      <div class="sm-sep"></div>
-      <button class="sm-link" data-open="computer">Control Panel</button>
-      <button class="sm-link" data-open="contact">Help and Support</button>
-      <div class="sm-power"><button data-open="shutdown">Shut down</button><button class="arrow" aria-label="Shut down options">&#9656;</button></div>
-    </div>
-  </div>
+      <svg class="art mascot" aria-hidden="true"><use href="assets/icons.svg#mascot"/></svg>
+    </aside>
+  </main>
 
-  <!-- ============ TASKBAR ============ -->
-  <div id="taskbar">
-    <button id="start-btn" aria-label="Start"></button>
-    <div id="task-buttons">
-      <button class="task-btn" data-key="blog" data-pinned title="nyaku's blog"><img src="img/icons/ie.png" alt=""></button>
-      <button class="task-btn" data-key="explorer" data-pinned title="Windows Explorer"><img src="img/icons/folder.png" alt=""></button>
-      <button class="task-btn" data-key="player" data-pinned title="Windows Media Player"><img src="img/icons/wmp.png" alt=""></button>
-    </div>
-    <div id="tray">
-      <span class="tray-up">&#9650;&#xFE0E;</span>
-      <img src="img/icons/flag-16.png" alt="" title="Action Center">
-      <img src="img/icons/network-16.png" alt="" title="Internet access">
-      <div id="clock"><span id="clock-time">12:00 AM</span><span id="clock-date">1/1/2011</span></div>
-    </div>
-    <button id="show-desktop" title="Show desktop" aria-label="Show desktop"></button>
-  </div>
+  <footer data-render="footer"></footer>
 
-  <div id="balloon" role="tooltip" hidden></div>
-
-  </div><!-- /#scale-wrap -->
-
-  <script src="js/content.js"></script>
-  <script src="js/desktop.js"></script>
+</div>
+<script src="js/content.js"></script>
+<script src="js/render.js"></script>
+<script src="js/player.js"></script>
 </body>
-
 </html>
