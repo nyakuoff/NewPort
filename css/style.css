@@ -277,3 +277,5 @@ body.has-mini { padding-bottom: 90px; }
   .tui { grid-template-columns: minmax(0, 1fr); }
   .tui-art { font-size: max(4px, min(8px, calc(100cqw / 58))); }
 }
+
+.sh .et { color: #7aa2f7; }

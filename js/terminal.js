@@ -3,10 +3,28 @@
 // the site commands (quote, fastfetch, status, ./interests.sh) read their text from SITE (js/content.js).
 (function () {
   const T = SITE.terminal, H = SITE.home, A = SITE.about, E = SITE.elsewhere;
-  const user = T.user, host = T.host, HOME = ["home", user];
+  let user = T.user, host = T.host, HOME = ["home", user]; // the machine you're on; ssh swaps these
   const esc = UI.esc;
   const has = (o, k) => Object.prototype.hasOwnProperty.call(o, k);
   const when = new Date().toLocaleString("en-US", { month: "short", day: "2-digit", hour: "2-digit", minute: "2-digit", hour12: false }).replace(",", "");
+
+  /* ---------------- servers: the list lives in ~/.ssh/config. only cs30 lets you in (js/servers.js) ---------------- */
+  // the hosts on the show's "Dulles internal map" (EVSERFL12-347). only cs30 lets you in; the rest refuse in different ways
+  const MAP = { cs20: "denied", cs30: "ok", cs51: "denied", cs46: "denied", cs52: "denied", cs76: "timeout", cs50: "timeout", cs23: "timeout",
+    cs47: "denied", cs36: "timeout", cs49: "timeout", cs22: "denied", cs71: "timeout", cs29: "timeout", cs34: "timeout", cs35: "timeout",
+    cs32: "timeout", cs59: "timeout", cs39: "timeout", cs33: "refused" };   // cs33 is the one with the red link on the map
+  const HOSTS = {};
+  Object.keys(MAP).forEach(k => { HOSTS[k] = { name: k + ".ecorp.com", ip: "10.30.0." + k.slice(2), user: "elliot", state: MAP[k] }; });
+  HOSTS["allsafe-gw"] = { name: "gw.allsafe.com", ip: "10.20.0.1", user: "elliot", state: "denied" };
+  const sshConfig = "# ~/.ssh/config\nHost *\n    ServerAliveInterval 30\n    IdentityFile ~/.ssh/id_rsa\n" +
+    Object.keys(HOSTS).map(k => "\nHost " + k + "\n    HostName " + HOSTS[k].name + "\n    User " + HOSTS[k].user + "\n").join("");
+  const knownHosts = Object.keys(HOSTS).map(k => HOSTS[k].name + " ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAI" + k.replace(/\W/g, "").padEnd(12, "x") + "FakeKeyForTheSite\n").join("");
+  const loadServers = () => new Promise((ok, no) => {
+    if (window.Servers) return ok();
+    const el = document.createElement("script");
+    el.src = "js/servers.js"; el.onload = ok; el.onerror = no;
+    document.head.appendChild(el);
+  });
 
   /* ---------------- filesystem: dir = {c:{...}}, file = {t:"text"}; run = script name, bin = binary ---------------- */
   const slug = s => s.toLowerCase().replace(/[^a-z0-9]+/g, "-");
@@ -22,23 +40,36 @@
     projects: { c: {} },
     music: { c: {} },
     ".bashrc": { t: "# ~/.bashrc\nalias ll='ls -l'\nexport EDITOR=nvim\n" },
+    ".ssh": { mode: "drwx------", c: {
+      config: { t: sshConfig },
+      known_hosts: { t: knownHosts },
+      "id_rsa": { t: "", deny: true, mode: "-rw-------" },
+      "id_rsa.pub": { t: "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQFakeKeyForTheSite elliot@allsafe\n" }
+    } },
+    ".bash_history": { t: "ls -a\ncd projects\ncat snowify.md\ngit pull\nssh cs30\nexit\ncd ~\nnvim js/content.js\n" },
     ".secret": { t: "you found it.\nthere's nothing here but a sleeping cat. zzz\n" }
   } };
   H.work.forEach(w => { mine.c.projects.c[slug(w.title) + ".md"] = { t: "# " + w.title + "\n\n" + w.desc + "\n\n" + w.year + "  " + w.href + "\n" }; });
-  const fs = { c: {
+  let fs = { c: {
     home: { c: { [user]: mine } },
-    etc: { c: { hostname: { t: host + "\n" }, "os-release": { t: 'NAME="CachyOS Linux"\nID=cachyos\nID_LIKE=arch\n' } } },
+    etc: { c: { hostname: { t: host + "\n" },
+      hosts: { t: "127.0.0.1\tlocalhost\n127.0.1.1\t" + host + "\n\n# work\n" + Object.keys(HOSTS).map(k => HOSTS[k].ip + "\t" + HOSTS[k].name + " " + k).join("\n") + "\n" }, "os-release": { t: 'NAME="CachyOS Linux"\nID=cachyos\nID_LIKE=arch\n' } } },
     tmp: { c: {} }
   } };
   fetch(SITE.music.folder + "songs.json").then(r => r.json()).then(list => {
-    list.forEach(f => { mine.c.music.c[f.replace(/ /g, "_")] = { bin: true }; });
+    list.forEach(f => { mine.c.music.c[f.replace(/ /g, "_")] = { bin: true, song: true }; });
   }).catch(() => {});
 
-  const S = { cwd: HOME.slice(), prev: HOME.slice(), hist: [], out: "" };
+  let sys = { uname: "Linux " + host + " 7.3.1-1-cachyos #1 SMP PREEMPT_DYNAMIC x86_64 GNU/Linux", owner: user }; // facts about the machine you're on
+  const S = { cwd: HOME.slice(), prev: HOME.slice(), hist: [], out: "", stack: [] }; // stack = machines you ssh'd out of
+  const remote = () => S.stack.length > 0;
+  const priv = () => user === "root";
+  // true if you can't get to this path: it, or a directory above it, is locked
+  const locked = parts => { if (priv()) return false; let n = fs; for (const k of parts) { n = n && n.c && has(n.c, k) ? n.c[k] : null; if (!n) return false; if (n.deny) return true; } return false; };   // root ignores permission denials and read-only dirs
   let root, outEl, bodyEl, inEl, psEl, hi = 0, draft = "";
 
   const resolve = p => {
-    if (p === "~" || p.startsWith("~/")) p = "/home/" + user + p.slice(1);
+    if (p === "~" || p.startsWith("~/")) p = "/" + HOME.join("/") + p.slice(1);
     const out = p[0] === "/" ? [] : S.cwd.slice();
     p.split("/").forEach(s => { if (s === "..") out.pop(); else if (s && s !== ".") out.push(s); });
     return out;
@@ -48,13 +79,14 @@
     const h = HOME.join("/"), s = parts.join("/");
     return s === h ? "~" : s.startsWith(h + "/") ? "~" + s.slice(h.length) : "/" + s;
   };
-  const ps = () => "<b>" + esc(user + "@" + host) + "</b> <i>" + esc(pretty(S.cwd)) + "</i> $";
+  const psText = () => "<b>" + esc(user + "@" + host) + "</b> <i>" + esc(pretty(S.cwd)) + "</i> " + (priv() ? "#" : "$");
+  const ps = () => (S.app ? S.app.ps() : psText());
 
   const print = html => { outEl.insertAdjacentHTML("beforeend", '<div class="ln">' + html + "</div>"); };
   const text = s => print(esc(s));
   const item = (name, n) => '<span class="' + (n.c ? "d" : n.run ? "x" : "") + '">' + esc(name) + "</span>";
-  const perm = n => (n.c ? "drwxr-xr-x" : n.run ? "-rwxr-xr-x" : "-rw-r--r--");
-  const size = n => (n.c ? 4096 : n.bin ? 4194304 : (n.t || "").length);
+  const perm = n => n.mode || (n.c ? "drwxr-xr-x" : n.run ? "-rwxr-xr-x" : "-rw-r--r--");
+  const size = n => n.size || (n.c ? 4096 : n.bin ? 4194304 : (n.t || "").length);
   // split into [parent dir node, name] for creating / removing things; null if the parent doesn't exist
   const parentOf = p => { const parts = resolve(p), dir = node(parts.slice(0, -1)); return dir && dir.c && parts.length ? [dir, parts[parts.length - 1]] : null; };
 
@@ -81,7 +113,11 @@
   const C = {
     help: { s: 1, d: "list the commands", f() {
       const row = (c, u, d) => '<b>' + esc(u || c) + "</b><span>" + esc(d) + "</span>";
-      const group = (title, s) => Object.keys(C).filter(k => C[k].d && !!C[k].s === s).map(k => row(k, C[k].u, C[k].d)).join("");
+      const group = (title, s) => Object.keys(C).filter(k => C[k].d && !!C[k].s === s && !(remote() && C[k].local)).map(k => row(k, C[k].u, C[k].d)).join("");
+      if (remote()) {
+        print('<span class="dim">shell</span>\n<div class="help">' + group("shell", false) + "</div>");
+        return print('\n<span class="dim">type</span> exit <span class="dim">to close the connection</span>');
+      }
       print('<span class="dim">site</span>\n<div class="help">' + group("site", true) + '<b>./interests.sh</b><span>what i\'m into (it\'s in ~)</span><b>./ocarina.sh</b><span>play the ocarina (a + arrow keys)</span></div>');
       print('\n<span class="dim">shell</span>\n<div class="help">' + group("shell", false) + "</div>");
       print('\n<span class="dim">tip: tab completes, ↑ ↓ browse history. try</span> ls <span class="dim">then</span> cat about.txt');
@@ -106,9 +142,10 @@
       (paths.length ? paths : ["."]).forEach((p, i, arr) => {
         const n = node(resolve(p));
         if (!n) return text("ls: cannot access '" + p + "': No such file or directory");
+        if (locked(resolve(p))) return text("ls: cannot open directory '" + p + "': Permission denied");
         if (arr.length > 1) text((i ? "\n" : "") + p + ":");
         const entries = n.c ? Object.keys(n.c).filter(k => all || k[0] !== ".").sort().map(k => [k, n.c[k]]) : [[p, n]];
-        if (long) entries.forEach(([k, e]) => print(esc(perm(e) + " 1 " + user + " " + user + " " + String(size(e)).padStart(7) + " " + when + " ") + item(k, e)));
+        if (long) entries.forEach(([k, e]) => print(esc(perm(e) + " 1 " + (e.own || sys.owner) + " " + (e.own || sys.owner) + " " + String(size(e)).padStart(7) + " " + when + " ") + item(k, e)));
         else if (entries.length) print('<div class="ls">' + entries.map(([k, e]) => item(k, e)).join("") + "</div>");
       });
     } },
@@ -116,6 +153,7 @@
       const t = a[0] || "~", parts = t === "-" ? S.prev : resolve(t), n = node(parts);
       if (!n) return text("bash: cd: " + t + ": No such file or directory");
       if (!n.c) return text("bash: cd: " + t + ": Not a directory");
+      if (locked(parts)) return text("bash: cd: " + t + ": Permission denied");
       S.prev = S.cwd; S.cwd = parts;
       if (t === "-") text(pretty(parts));
     } },
@@ -124,9 +162,11 @@
       if (!a.length) return text("cat: give me a file (try cat about.txt)");
       a.forEach(p => {
         const n = node(resolve(p));
-        if (!n) text("cat: " + p + ": No such file or directory");
+        if (n && locked(resolve(p))) text("cat: " + p + ": Permission denied");
+        else if (!n) text("cat: " + p + ": No such file or directory");
         else if (n.c) text("cat: " + p + ": Is a directory");
-        else if (n.bin) text("cat: " + p + ": binary file (there's a player for that, up in the nav)");
+        else if (locked(resolve(p))) text("cat: " + p + ": Permission denied");
+        else if (n.bin) text("cat: " + p + (n.song ? ": binary file (there's a player for that, up in the nav)" : ": binary file"));
         else text((n.t || "").replace(/\n$/, ""));
       });
     } },
@@ -153,6 +193,7 @@
       const target = a[i + 1], at = target && parentOf(target);
       if (!target) return text("bash: syntax error near unexpected token `newline'");
       if (!at) return text("bash: " + target + ": No such file or directory");
+      if (at[0].ro && !priv()) return text("bash: " + target + ": Permission denied");
       const old = has(at[0].c, at[1]) ? at[0].c[at[1]] : null;
       if (old && (old.c || old.bin)) return text("bash: " + target + ": cannot write to it");
       at[0].c[at[1]] = Object.assign(old || {}, { t: (a[i] === ">>" && old ? old.t : "") + a.slice(0, i).join(" ") + "\n" });
@@ -161,6 +202,7 @@
       a.filter(x => x[0] !== "-").forEach(p => {
         const at = parentOf(p);
         if (!at) text("mkdir: cannot create directory '" + p + "': No such file or directory");
+        else if (at[0].ro && !priv()) text("mkdir: cannot create directory '" + p + "': Permission denied");
         else if (has(at[0].c, at[1])) text("mkdir: cannot create directory '" + p + "': File exists");
         else at[0].c[at[1]] = { c: {} };
       });
@@ -169,6 +211,7 @@
       a.forEach(p => {
         const at = parentOf(p);
         if (!at) text("touch: cannot touch '" + p + "': No such file or directory");
+        else if (at[0].ro && !priv()) text("touch: cannot touch '" + p + "': Permission denied");
         else if (!has(at[0].c, at[1])) at[0].c[at[1]] = { t: "" };
       });
     } },
@@ -179,6 +222,7 @@
         if (!at) return text(resolve(p).length ? "rm: cannot remove '" + p + "': No such file or directory" : "rm: it is dangerous to operate recursively on '/'");
         const n = has(at[0].c, at[1]) ? at[0].c[at[1]] : null;
         if (!n) return force || text("rm: cannot remove '" + p + "': No such file or directory");
+        if (at[0].ro && !priv()) return text("rm: cannot remove '" + p + "': Permission denied");
         if (n.c && !rec) return text("rm: cannot remove '" + p + "': Is a directory");
         delete at[0].c[at[1]];
         while (!node(S.cwd)) S.cwd = S.cwd.slice(0, -1); // you deleted the dir you were standing in
@@ -208,13 +252,59 @@
     clear: { d: "clear the screen (ctrl+l)", f() { outEl.innerHTML = ""; } },
     whoami: { d: "who am i", f() { text(user); } },
     hostname: { d: "this machine", f() { text(host); } },
-    uname: { u: "uname [-a]", d: "system info", f(a) { text(a.includes("-a") ? "Linux " + host + " 7.3.1-1-cachyos #1 SMP PREEMPT_DYNAMIC x86_64 GNU/Linux" : "Linux"); } },
+    uname: { u: "uname [-a]", d: "system info", f(a) { text(a.includes("-a") ? sys.uname : "Linux"); } },
     date: { d: "the date", f() { text(new Date().toString().replace(/ GMT.*/, "")); } },
     history: { d: "what you typed", f() { text(S.hist.map((h, i) => String(i + 1).padStart(5) + "  " + h).join("\n")); } },
-    sudo: { f() { text(user + " is not in the sudoers file. This incident will be reported."); } },
-    exit: { f() { text("logout\n(not really. use the nav up top)"); } }
+    ssh: { u: "ssh [user@]host", d: "connect to a server (they're listed in ~/.ssh/config)", f(a) {
+      const args = [];
+      for (let i = 0; i < a.length; i++) { if (/^-[lpiobF]$/.test(a[i])) i++; else if (a[i][0] !== "-") args.push(a[i]); }
+      if (!args.length) return text("usage: ssh [-l login_name] [-p port] [user@]hostname");
+      const [u0, h] = args[0].includes("@") ? args[0].split("@") : [null, args[0]];
+      const key = Object.keys(HOSTS).find(k => k === h || HOSTS[k].name === h);
+      if (!key) return text("ssh: Could not resolve hostname " + h + ": Name or service not known");
+      const H0 = HOSTS[key], u = u0 || H0.user;
+      if (H0.state === "timeout") return text("ssh: connect to host " + H0.name + " port 22: Connection timed out");
+      if (H0.state === "refused") return text("ssh: connect to host " + H0.name + " port 22: Connection refused");
+      if (H0.state !== "ok" || u !== H0.user) return text(u + "@" + H0.name + ": Permission denied (publickey).");
+      loadServers().then(() => {
+        if (!bodyEl || !bodyEl.isConnected) return;
+        const sess = Servers.connect(key);
+        S.stack.push({ fs, user, host, HOME, sys, cwd: S.cwd, prev: S.prev });
+        ({ fs, user, host, HOME } = sess); sys = sess;
+        S.cwd = HOME.slice(); S.prev = HOME.slice();
+        sess.banner.forEach(l => print(esc(l)));
+        refresh();
+      }, () => text("ssh: connect to host " + H0.name + " port 22: Network is unreachable"));
+    } },
+    sudo: { f(a) {
+      if (!remote()) return text(user + " is not in the sudoers file. This incident will be reported.");
+      const at = a.findIndex(x => x[0] !== "-"), rest = at < 0 ? [] : a.slice(at);
+      if (!rest.length) {       // sudo -i / sudo -s: a root shell
+        if (!a.includes("-i") && !a.includes("-s")) return text("usage: sudo [-i] command");
+        S.stack.push({ fs, user, host, HOME, sys, cwd: S.cwd, prev: S.prev, sub: true });
+        user = "root"; HOME = ["root"]; S.cwd = HOME.slice(); S.prev = HOME.slice();
+        return;
+      }
+      const u0 = user; user = "root";                 // one command as root
+      try { dispatch(rest[0], rest.slice(1)); } finally { user = u0; }
+    } },
+    eterm: { f() {   // E Corp's admin terminal. only exists on the server (hidden in /usr/local/bin)
+      if (!remote() || !window.Servers) return text("bash: eterm: command not found");
+      Servers.eterm({ print, esc, node, start: app => { S.app = app; }, quit: () => { S.app = null; } });
+    } },
+    exit: { f() {
+      const p = S.stack.pop();
+      if (!p) return text("logout\n(not really. use the nav up top)");
+      const was = sys.fqdn || host;
+      ({ fs, user, host, HOME, sys } = p); S.cwd = p.cwd; S.prev = p.prev;
+      text(p.sub ? "logout" : "logout\nConnection to " + was + " closed.");
+    } }
   };
+  // these only exist on your own machine, so they're "command not found" once you've ssh'd somewhere
+  ["quote", "fastfetch", "status", "play", "pause", "next", "prev", "ssh"].forEach(k => { C[k].local = 1; });
+  C.eterm.remoteOnly = 1;
   C.ll = { d: "", f(a) { C.ls.f(["-l"].concat(a)); } };
+  C.more = { f(a) { C.cat.f(a); } };
 
   function exec(cmd) {
     const n = node(resolve(cmd));
@@ -234,8 +324,10 @@
   function run(line) {
     const toks = [...line.matchAll(/"([^"]*)"|'([^']*)'|(\S+)/g)].flatMap(m => (m[3] !== undefined ? glob(m[3]) : [m[1] !== undefined ? m[1] : m[2]]));
     if (!toks.length) return;
-    const cmd = toks[0], args = toks.slice(1);
-    if (has(C, cmd)) C[cmd].f(args);
+    dispatch(toks[0], toks.slice(1));
+  }
+  function dispatch(cmd, args) {
+    if (has(C, cmd) && !(remote() && C[cmd].local) && !(!remote() && C[cmd].remoteOnly)) C[cmd].f(args);
     else if (cmd.includes("/")) exec(cmd);
     else text("bash: " + cmd + ": command not found");
   }
@@ -243,7 +335,7 @@
   /* ---------------- input handling ---------------- */
   function refresh() {
     psEl.innerHTML = ps();
-    root.querySelector(".term-bar span").textContent = user + "@" + host + ": " + pretty(S.cwd);
+    root.querySelector(".term-bar span").textContent = S.app ? "eterm: " + (sys.fqdn || host) : user + "@" + host + ": " + pretty(S.cwd);
     S.out = outEl.innerHTML;
     bodyEl.scrollTop = bodyEl.scrollHeight;
   }
@@ -253,13 +345,15 @@
     inEl.value = "";
     if (line.trim()) S.hist.push(line);
     hi = S.hist.length; draft = "";
-    try { run(line); } catch (e) { text("bash: something broke: " + e.message); }
+    try { S.app ? S.app.run(line) : run(line); } catch (e) { text("bash: something broke: " + e.message); }
     refresh();
   }
   function complete() {
+    if (S.app) return;
     const v = inEl.value, m = v.match(/^(.*?)(\S*)$/), head = m[1], word = m[2];
     let cands;
-    if (!head.trim() && !word.includes("/")) cands = Object.keys(C).filter(k => k.startsWith(word) && k !== "ll" || k === word);
+    if (!head.trim() && !word.includes("/")) cands = Object.keys(C).filter(k => (k.startsWith(word) && k !== "ll" || k === word) && !(remote() && C[k].local) && !(!remote() && C[k].remoteOnly));
+    else if (/^ssh\s+$/.test(head) && !remote()) cands = Object.keys(HOSTS).filter(k => k.startsWith(word));
     else {
       const i = word.lastIndexOf("/"), dir = word.slice(0, i + 1), base = word.slice(i + 1), n = node(resolve(dir || "."));
       if (!n || !n.c) return;
